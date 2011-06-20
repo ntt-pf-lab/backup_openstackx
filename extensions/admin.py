@@ -15,12 +15,9 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import base64
-import json
 import urlparse
 
 from datetime import datetime
-from operator import add
 from webob import exc
 
 
@@ -30,10 +27,13 @@ from nova import db
 from nova import exception
 from nova import flags
 from nova import log as logging
+from nova import quota
 from nova import utils
-from nova import wsgi
+import nova.image
+from nova.api.openstack import create_instance_helper
 from nova.auth import manager as auth_manager
 from nova.db.sqlalchemy.session import get_session
+from nova.api.ec2 import ec2utils
 
 
 import nova.api.openstack as openstack_api
@@ -48,6 +48,99 @@ flags.DECLARE('max_gigabytes', 'nova.scheduler.simple')
 flags.DECLARE('max_cores', 'nova.scheduler.simple')
 
 LOG = logging.getLogger('nova.api.openstack.admin')
+
+
+class OverrideHelper(create_instance_helper.CreateInstanceHelper):
+    """Allows keypair name to be passed in request."""
+    def create_instance(self, req, body, create_method):
+        if not body:
+            raise faults.Fault(exc.HTTPUnprocessableEntity())
+
+        context = req.environ['nova.context']
+
+        password = self.controller._get_server_admin_password(body['server'])
+
+        key_name = body['server'].get('key_name')
+        key_data = None
+
+        if key_name:
+            try:
+                key_pair = db.key_pair_get(context, context.user_id, key_name)
+                key_name = key_pair['name']
+                key_data = key_pair['public_key']
+            except:
+                msg = _("Can not load the requested key %s" % key_name)
+                return faults.Fault(exc.HTTPBadRequest(msg))
+        else:
+            key_name = None
+            key_data = None
+            key_pairs = auth_manager.AuthManager.get_key_pairs(context)
+            if key_pairs:
+                key_pair = key_pairs[0]
+                key_name = key_pair['name']
+                key_data = key_pair['public_key']
+
+        image_href = self.controller._image_ref_from_req_data(body)
+        try:
+            image_service, image_id = nova.image.get_image_service(image_href)
+            kernel_id, ramdisk_id = self._get_kernel_ramdisk_from_image(
+                                                req, image_id)
+            images = set([str(x['id']) for x in image_service.index(context)])
+            assert str(image_id) in images
+        except Exception, e:
+            msg = _("Cannot find requested image %(image_href)s: %(e)s" %
+                                                                    locals())
+            raise faults.Fault(exc.HTTPBadRequest(explanation=msg))
+
+        personality = body['server'].get('personality')
+
+        injected_files = []
+        if personality:
+            injected_files = self._get_injected_files(personality)
+
+        flavor_id = self.controller._flavor_id_from_req_data(body)
+
+        if not 'name' in body['server']:
+            msg = _("Server name is not defined")
+            raise exc.HTTPBadRequest(explanation=msg)
+
+        zone_blob = body['server'].get('blob')
+        name = body['server']['name']
+        self._validate_server_name(name)
+        name = name.strip()
+
+        reservation_id = body['server'].get('reservation_id')
+
+        try:
+            inst_type = \
+                    instance_types.get_instance_type_by_flavor_id(flavor_id)
+            extra_values = {
+                'instance_type': inst_type,
+                'image_ref': image_href,
+                'password': password}
+
+            return (extra_values,
+                    create_method(context,
+                                  inst_type,
+                                  image_id,
+                                  kernel_id=kernel_id,
+                                  ramdisk_id=ramdisk_id,
+                                  display_name=name,
+                                  display_description=name,
+                                  key_name=key_name,
+                                  key_data=key_data,
+                                  metadata=body['server'].get('metadata', {}),
+                                  injected_files=injected_files,
+                                  admin_password=password,
+                                  zone_blob=zone_blob,
+                                  reservation_id=reservation_id))
+        except quota.QuotaError as error:
+            self._handle_quota_error(error)
+        except exception.ImageNotFound as error:
+            msg = _("Can not find requested image")
+            raise faults.Fault(exc.HTTPBadRequest(explanation=msg))
+
+        # Let the caller deal with unhandled exceptions.
 
 
 def user_dict(user, base64_file=None):
@@ -101,7 +194,7 @@ def instance_dict(inst):
             'memory_mb': inst['memory_mb'],
             'vcpus': inst['vcpus'],
             'disk_gb': inst['local_gb'],
-            'image_id': inst['image_id'],
+            'image_ref': inst['image_ref'],
             'kernel_id': inst['kernel_id'],
             'ramdisk_id': inst['ramdisk_id'],
             'user': inst['user_id'],
@@ -162,7 +255,7 @@ class ExtrasServerController(openstack_api.servers.ControllerV11):
                         'memory_mb': inst['memory_mb'],
                         'vcpus': inst['vcpus'],
                         'disk_gb': inst['local_gb'],
-                        'image_id': inst['image_id'],
+                        'image_ref': inst['image_ref'],
                         'kernel_id': inst['kernel_id'],
                         'ramdisk_id': inst['ramdisk_id'],
                         'user_id': inst['user_id'],
@@ -224,86 +317,12 @@ class ExtrasServerController(openstack_api.servers.ControllerV11):
         return exc.HTTPNoContent()
 
 
-    def create(self, req):
-        """ Creates a new server for a given user """
-        env = self._deserialize_create(req)
-        if not env:
-            return faults.Fault(exc.HTTPUnprocessableEntity())
-
-        context = req.environ['nova.context']
-
-        password = self._get_server_admin_password(env['server'])
-
-        key_name = env['server'].get('key_name')
-        key_data = None
-
-        if key_name:
-            try:
-                key_pair = db.key_pair_get(context, context.user_id, key_name)
-                key_name = key_pair['name']
-                key_data = key_pair['public_key']
-            except:
-                msg = _("Can not load the requested key %s" % key_name)
-                return faults.Fault(exc.HTTPBadRequest(msg))
-        else:
-            # backwards compatibility
-            key_pairs = auth_manager.AuthManager.get_key_pairs(context)
-            if key_pairs:
-                key_pair = key_pairs[0]
-                key_name = key_pair['name']
-                key_data = key_pair['public_key']
-
-        image_id = self._image_id_from_req_data(env)
-
-        kernel_id, ramdisk_id = self._get_kernel_ramdisk_from_image(
-            req, image_id)
-
-        personality = env['server'].get('personality')
-        injected_files = []
-        if personality:
-            injected_files = self._get_injected_files(personality)
-
-        flavor_id = self._flavor_id_from_req_data(env)
-
-        if not 'name' in env['server']:
-            msg = _("Server name is not defined")
-            return exc.HTTPBadRequest(msg)
-        print "4444"
-
-        name = env['server']['name']
-        self._validate_server_name(name)
-        name = name.strip()
-
-        try:
-            inst_type = \
-                instance_types.get_instance_type_by_flavor_id(flavor_id)
-            (inst,) = self.compute_api.create(
-                context,
-                inst_type,
-                image_id,
-                kernel_id=kernel_id,
-                ramdisk_id=ramdisk_id,
-                display_name=name,
-                display_description=name,
-                key_name=key_name,
-                key_data=key_data,
-                user_data=env['server'].get('user_data'),
-                metadata=env['server'].get('metadata', {}),
-                injected_files=injected_files,
-                admin_password=password)
-        except quota.QuotaError as error:
-            self._handle_quota_error(error)
-
-        inst['instance_type'] = inst_type
-        inst['image_id'] = image_id
-
-        builder = self._get_view_builder(req)
-        server = builder.build(inst, is_detail=True)
-        server['server']['adminPass'] = password
-        return server
+    def __init__(self):
+        super(self, ).__init__()
+        self.helper = OverrideHelper()
 
 
-class ExtrasConsoleController(wsgi.Controller):
+class ExtrasConsoleController(object):
     def create(self, req):
         context = req.environ['nova.context'].elevated()
         env = self._deserialize(req.body, req.get_content_type())
@@ -376,11 +395,11 @@ class AdminFlavorController(ExtrasFlavorController):
             instance_types.purge(flavor['name'])
         else:
             instance_types.destroy(flavor['name'])
-    
+
         return exc.HTTPAccepted()
 
 
-class UsageController(wsgi.Controller):
+class UsageController(object):
 
     def _hours_for(self, instance, period_start, period_stop):
         print period_start
@@ -421,7 +440,7 @@ class UsageController(wsgi.Controller):
 
     def _usage_for_period(self, context, period_start, period_stop, tenant_id=None):
         fields = ['id',
-                  'image_id',
+                  'image_ref',
                   'project_id',
                   'user_id',
                   'vcpus',
@@ -544,7 +563,7 @@ class UsageController(wsgi.Controller):
         context = req.environ['nova.context']
         usage = self._usage_for_period(context, period_start, period_stop)
         return {'usage': {'values': usage}}
-    
+
     def show(self, req, id):
         (period_start, period_stop) = self._get_datetime_range(req)
         context = req.environ['nova.context']
@@ -554,9 +573,9 @@ class UsageController(wsgi.Controller):
         else:
             usage = {}
         return {'usage': usage}
-    
 
-class AdminServiceController(wsgi.Controller):
+
+class AdminServiceController(object):
 
     def _set_attr(self, service):
         now = datetime.utcnow()
@@ -596,7 +615,7 @@ class AdminServiceController(wsgi.Controller):
         return exc.HTTPAccepted()
 
 
-class ExtrasKeypairController(wsgi.Controller):
+class ExtrasKeypairController(object):
     def _gen_key(self, context, user_id, key_name):
         """Generate a key
 
@@ -660,7 +679,7 @@ class ExtrasKeypairController(wsgi.Controller):
         return {'keypairs': result}
 
 
-class AdminProjectController(wsgi.Controller):
+class AdminProjectController(object):
 
     def show(self, req, id):
         return project_dict(auth_manager.AuthManager().get_project(id))

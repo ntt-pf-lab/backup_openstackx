@@ -15,31 +15,19 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import base64
-import datetime
-import json
-
-from webob import exc
 
 from nova import compute
-from nova import db
-from nova import exception
 from nova import flags
 from nova import log as logging
-from nova import utils
-from nova import wsgi
-from nova.auth import manager
 
 from nova.api.openstack import extensions
-from nova.api.openstack import faults
-from nova.api.openstack import views
 
 FLAGS = flags.FLAGS
 LOG = logging.getLogger('nova.api.openstack.extras')
 
 
 
-class ConsoleController(wsgi.Controller):
+class ConsoleController(object):
     def create(self, req):
         context = req.environ['nova.context'].elevated()
         env = self._deserialize(req.body, req.get_content_type())
