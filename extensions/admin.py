@@ -189,49 +189,6 @@ def host_dict(host, compute_service, instances, volume_service, volumes, now):
     return rv
 
 
-def instance_dict(inst):
-    return {'name': inst['name'],
-            'memory_mb': inst['memory_mb'],
-            'vcpus': inst['vcpus'],
-            'disk_gb': inst['local_gb'],
-            'image_ref': inst['image_ref'],
-            'kernel_id': inst['kernel_id'],
-            'ramdisk_id': inst['ramdisk_id'],
-            'user': inst['user_id'],
-            'scheduled_at': inst['scheduled_at'],
-            'launched_at': inst['launched_at'],
-            'terminated_at': inst['terminated_at'],
-            'display_name': inst['display_name'],
-            'display_description': inst['display_description'],
-            'os_type': inst['os_type'],
-            'hostname': inst['hostname'],
-            'host': inst['host'],
-            'id': inst['id'],
-            }
-
-
-def vpn_dict(project, vpn_instance):
-    rv = {'project_id': project.id,
-          'public_ip': project.vpn_ip,
-          'public_port': project.vpn_port}
-    if vpn_instance:
-        rv['instance_id'] = ec2utils.id_to_ec2_id(vpn_instance['id'])
-        rv['created_at'] = utils.isotime(vpn_instance['created_at'])
-        address = vpn_instance.get('fixed_ip', None)
-        if address:
-            rv['internal_ip'] = address['address']
-        if project.vpn_ip and project.vpn_port:
-            if utils.vpn_ping(project.vpn_ip, project.vpn_port):
-                rv['state'] = 'running'
-            else:
-                rv['state'] = 'down'
-        else:
-            rv['state'] = 'down - invalid project vpn config'
-    else:
-        rv['state'] = 'pending'
-    return rv
-
-
 class ExtrasServerController(openstack_api.servers.ControllerV11):
     def _get_view_builder(self, req):
         class ViewBuilder(views.servers.ViewBuilderV11):
@@ -259,7 +216,8 @@ class ExtrasServerController(openstack_api.servers.ControllerV11):
                         'kernel_id': inst['kernel_id'],
                         'ramdisk_id': inst['ramdisk_id'],
                         'user_id': inst['user_id'],
-                        #'project_id': inst['project'].id,
+                        # TODO remove project_id
+                        'project_id': inst['project_id'],
                         'scheduled_at': inst['scheduled_at'],
                         'launched_at': inst['launched_at'],
                         'terminated_at': inst['terminated_at'],

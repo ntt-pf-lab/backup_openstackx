@@ -1,7 +1,8 @@
-import openstack.admin
-import openstack.compute
-import openstack.auth
-import openstack.extras
+from datetime import datetime
+import openstackx.admin
+import openstackx.compute
+import openstackx.auth
+import openstackx.extras
 import random
 import sys
 
@@ -11,31 +12,31 @@ else:
     host = 'localhost'
 
 
-auth = openstack.auth.Auth(management_url='http://%s:8080/v2.0/' % host)
+auth = openstackx.auth.Auth(management_url='http://%s:8080/v2.0/' % host)
 token = auth.tokens.create('1234', 'admin', 'secrete')
 print token.serviceCatalog
 
 admin_token = auth.tokens.create('1234', 'admin', 'secrete')
-accounts = openstack.extras.Account(auth_token=admin_token.id,
+accounts = openstackx.extras.Account(auth_token=admin_token.id,
         management_url='http://%s:8081/v2.0' % host)
 
-extras = openstack.extras.Extras(auth_token=token.id,
+extras = openstackx.extras.Extras(auth_token=token.id,
                                  auth_url='http://%s:8774/v1.1/' % host,
                                  management_url='http://%s:8774/v1.1/' % host)
 
-admin = openstack.admin.Admin(auth_token=token.id,
+admin = openstackx.admin.Admin(auth_token=token.id,
                               auth_url='http://%s:8774/v1.1/' % host,
                               management_url='http://%s:8774/v1.1/' % host)
 
-compute = openstack.compute.Compute(auth_token=token.id,
+compute = openstackx.compute.Compute(auth_token=token.id,
                                     auth_url='http://%s:8774/v1.1/' % host,
                                     management_url='http://%s:8774/v1.1/' % host)
 print "-----"
 print extras.keypairs.list()
 #print extras.keypairs.delete('test')
-print extras.keypairs.create('test')
-print extras.keypairs.create('test2')
-#print extras.servers.list()[0]._info['attrs']['description']
+#print extras.keypairs.create('test')
+#print extras.keypairs.create('test2')
+print extras.servers.list()[0]._info['attrs']['description']
 #print extras.servers.list()[0].update('my server', None, 'description')
 print "-----"
 #flavors = admin.flavors.list()
@@ -46,11 +47,20 @@ print "-----"
 #    s.update(False)
 
 
+print admin.flavors.list()
 #admin.flavors.delete(405)
 #flavor = admin.flavors.create('', '', '', '', '')
 #flavor.delete(True)
 
-if True:
+if False:
+    print accounts.tenants.get('1234')
+    print "%d tenants" % len(accounts.tenants.list())
+    t = accounts.tenants.create('project:%d' % random.randint(0, 10000))
+    t.update("test", False)
+    print t.enabled
+    print t.description
+
+if False:
     print "%d users" % len(accounts.users.list())
     t = accounts.users.create('jesse', 'anotherjesse@gmail.com', 'asdf', '1234', True)
     print 'created %s' % t
