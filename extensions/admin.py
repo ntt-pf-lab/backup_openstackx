@@ -277,7 +277,7 @@ class ExtrasServerController(openstack_api.servers.ControllerV11):
 
     def __init__(self):
         super(ExtrasServerController, self).__init__()
-        self.helper = OverrideHelper()
+        self.helper = OverrideHelper(self)
 
 
 class ExtrasConsoleController(object):
