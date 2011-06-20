@@ -28,12 +28,10 @@ from nova import exception
 from nova import flags
 from nova import log as logging
 from nova import quota
-from nova import utils
 import nova.image
 from nova.api.openstack import create_instance_helper
 from nova.auth import manager as auth_manager
 from nova.db.sqlalchemy.session import get_session
-from nova.api.ec2 import ec2utils
 
 
 import nova.api.openstack as openstack_api
@@ -240,32 +238,31 @@ class ExtrasServerController(openstack_api.servers.ControllerV11):
         return ViewBuilder(
             addresses_builder, flavor_builder, image_builder, base_url)
 
-    def index(self, req):
+    def index(self, req, body):
         return self._items(req, is_detail=True)
 
     # @scheduler_api.redirect_handler
-    def update(self, req, id):
+    def update(self, req, id, body):
         """ Updates the server name or password """
         if len(req.body) == 0:
             raise exc.HTTPUnprocessableEntity()
 
-        inst_dict = self._deserialize(req.body, req.get_content_type())
-        if not inst_dict:
+        if not body:
             return faults.Fault(exc.HTTPUnprocessableEntity())
 
         ctxt = req.environ['nova.context']
         update_dict = {}
 
-        if 'name' in inst_dict['server']:
-            name = inst_dict['server']['name']
+        if 'name' in body['server']:
+            name = body['server']['name']
             self._validate_server_name(name)
             update_dict['display_name'] = name.strip()
 
-        if 'description' in inst_dict['server']:
-            description = inst_dict['server']['description']
+        if 'description' in body['server']:
+            description = body['server']['description']
             update_dict['display_description'] = description.strip()
 
-        self._parse_update(ctxt, id, inst_dict, update_dict)
+        self._parse_update(ctxt, id, body, update_dict)
 
         try:
             self.compute_api.update(ctxt, id, **update_dict)
@@ -281,11 +278,10 @@ class ExtrasServerController(openstack_api.servers.ControllerV11):
 
 
 class ExtrasConsoleController(object):
-    def create(self, req):
+    def create(self, req, body):
         context = req.environ['nova.context'].elevated()
-        env = self._deserialize(req.body, req.get_content_type())
-        console_type = env['console'].get('type')
-        server_id = env['console'].get('server_id')
+        console_type = body['console'].get('type')
+        server_id = body['console'].get('server_id')
         compute_api = compute.API()
         if console_type == 'text':
             output = compute_api.get_console_output(
@@ -322,24 +318,22 @@ class ExtrasFlavorController(openstack_api.flavors.ControllerV11):
 
 class AdminFlavorController(ExtrasFlavorController):
 
-    def create(self, req):
-        env = self._deserialize(req.body, req.get_content_type())
-
-        name = env['flavor'].get('name')
-        memory_mb = env['flavor'].get('memory_mb')
-        vcpus = env['flavor'].get('vcpus')
-        local_gb = env['flavor'].get('local_gb')
-        flavorid = env['flavor'].get('flavorid')
-        swap = env['flavor'].get('swap')
-        rxtx_quota = env['flavor'].get('rxtx_quota')
-        rxtx_cap = env['flavor'].get('rxtx_cap')
+    def create(self, req, body):
+        name = body['flavor'].get('name')
+        memory_mb = body['flavor'].get('memory_mb')
+        vcpus = body['flavor'].get('vcpus')
+        local_gb = body['flavor'].get('local_gb')
+        flavorid = body['flavor'].get('flavorid')
+        swap = body['flavor'].get('swap')
+        rxtx_quota = body['flavor'].get('rxtx_quota')
+        rxtx_cap = body['flavor'].get('rxtx_cap')
 
         context = req.environ['nova.context'].elevated()
         flavor = instance_types.create(name, memory_mb, vcpus,
                                        local_gb, flavorid,
                                        swap, rxtx_quota, rxtx_cap)
         builder = self._get_view_builder(req)
-        values = builder.build(env['flavor'], is_detail=True)
+        values = builder.build(body['flavor'], is_detail=True)
         return dict(flavor=values)
 
     def delete(self, req, id):
@@ -565,11 +559,10 @@ class AdminServiceController(object):
         service = self._set_attr(db.service_get(context, id))
         return {'service': service}
 
-    def update(self, req, id):
+    def update(self, req, id, body):
         context = req.environ['nova.context'].elevated()
-        env = self._deserialize(req.body, req.get_content_type())
-        name = env['service'].get('disabled')
-        db.service_update(context, id, env['service'])
+        name = body['service'].get('disabled')
+        db.service_update(context, id, body['service'])
         return exc.HTTPAccepted()
 
 
@@ -595,14 +588,13 @@ class ExtrasKeypairController(object):
         db.key_pair_create(context, key)
         return {'private_key': private_key, 'fingerprint': fingerprint}
 
-    def create(self, req):
-        env = self._deserialize(req.body, req.get_content_type())
+    def create(self, req, body):
         context = req.environ['nova.context']
-        key_name = env['keypair']['key_name']
+        key_name = body['keypair']['key_name']
         LOG.audit(_("Create key pair %s"), key_name, context=context)
         data = self._gen_key(context, context.user_id, key_name)
 
-        rval = env
+        rval = body
         rval['keypair']['fingerprint'] = data['fingerprint']
         rval['keypair']['private_key'] = data['private_key']
         return rval
@@ -648,12 +640,11 @@ class AdminProjectController(object):
             [project_dict(u) for u in
             auth_manager.AuthManager().get_projects(user=user)]}
 
-    def create(self, req):
-        env = self._deserialize(req.body, req.get_content_type())
-        name = env['project'].get('name')
-        manager_user = env['project'].get('manager_user')
-        description = env['project'].get('description')
-        member_users = env['project'].get('member_users')
+    def create(self, req, body):
+        name = body['project'].get('name')
+        manager_user = body['project'].get('manager_user')
+        description = body['project'].get('description')
+        member_users = body['project'].get('member_users')
 
         context = req.environ['nova.context']
         msg = _("Create project %(name)s managed by"
@@ -667,12 +658,11 @@ class AdminProjectController(object):
                      member_users=None))
         return {'project': project}
 
-    def update(self, req, id):
+    def update(self, req, id, body):
         context = req.environ['nova.context']
-        env = self._deserialize(req.body, req.get_content_type())
         name = id
-        manager_user = env['project'].get('manager_user')
-        description = env['project'].get('description')
+        manager_user = body['project'].get('manager_user')
+        description = body['project'].get('description')
         msg = _("Modify project: %(name)s managed by"
                 " %(manager_user)s") % locals()
         LOG.audit(msg, context=context)
