@@ -74,9 +74,12 @@ class ServerManager(compute.ServerManager):
                     return l['href']
             return None
 
+        # NOTE(vish): Split below is because compute is passing back a
+        #             compute href but expects a glance href. Just passing
+        #             the id (part after last /) uses the default glance.
         body = {"server": {
             "name": name,
-            "imageRef": get_href(image.links),
+            "imageRef": get_href(image.links).split('/')[-1],
             "flavorRef": get_href(flavor.links),
         }}
         if ipgroup:
