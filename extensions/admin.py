@@ -238,7 +238,7 @@ class ExtrasServerController(openstack_api.servers.ControllerV11):
         return ViewBuilder(
             addresses_builder, flavor_builder, image_builder, base_url)
 
-    def index(self, req, body):
+    def index(self, req):
         return self._items(req, is_detail=True)
 
     # @scheduler_api.redirect_handler
