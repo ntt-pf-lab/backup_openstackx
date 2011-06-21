@@ -18,6 +18,17 @@ class TenantManager(base.ManagerWithFind):
     def get(self, tenant_id):
         return self._get("/tenants/%s" % tenant_id, "tenant")
 
+#    def get_user_role_refs(self, user_id):
+#        return self._get("/users/%s/roleRefs" % user_id, "roleRefs")
+
+#    def add_tenant_user(self, tenant_id, user_id):
+#        params = {"roleRef": {"tenantId": tenant_id, "roleId": "Member"}}
+#        return self._create("/users/%s/roleRefs" % user_id, params, "roleRef")
+#
+#    def remove_tenant_user(self, tenant_id, user_id):
+#        params = {}
+#        return self._delete("/users/%s/roleRefs/5" % user_id)
+
     def create(self, tenant_id, description, enabled=True):
         params = {"tenant": {"id": tenant_id,
                              "description": description,

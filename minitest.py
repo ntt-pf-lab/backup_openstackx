@@ -14,7 +14,7 @@ else:
 
 auth = openstackx.auth.Auth(management_url='http://%s:8080/v2.0/' % host)
 token = auth.tokens.create('1234', 'admin', 'secrete')
-print token.serviceCatalog
+print token._info
 
 admin_token = auth.tokens.create('1234', 'admin', 'secrete')
 accounts = openstackx.extras.Account(auth_token=admin_token.id,
@@ -31,12 +31,27 @@ admin = openstackx.admin.Admin(auth_token=token.id,
 compute = openstackx.compute.Compute(auth_token=token.id,
                                     auth_url='http://%s:8774/v1.1/' % host,
                                     management_url='http://%s:8774/v1.1/' % host)
+
+print "-----"
+print "-----"
+#print accounts.tenants.get('1234')
+#print accounts.tenants.add_tenant_user('1234', 'joeuser')
+print accounts.role_refs.get_for_user('joeadmin')
+print accounts.role_refs.get_for_user('joeuser')
+print "hooray"
+print "-----"
+print accounts.role_refs.add_for_tenant_user('1234', 'joeuser', 'Member')
+
+print accounts.role_refs.delete_for_tenant_user('1234', 'joeuser', 'Member')
+print "-----"
+#print accounts.tenants.get_tenant_users('1234')
+print "-----"
 print "-----"
 print extras.keypairs.list()
 #print extras.keypairs.delete('test')
 #print extras.keypairs.create('test')
 #print extras.keypairs.create('test2')
-print extras.servers.list()[0]._info['attrs']['description']
+print extras.servers.list()[0]._info['attrs']
 #print extras.servers.list()[0].update('my server', None, 'description')
 print "-----"
 #flavors = admin.flavors.list()

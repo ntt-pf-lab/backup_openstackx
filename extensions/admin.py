@@ -119,7 +119,7 @@ class ExtrasServerController(openstack_api.servers.ControllerV11):
                         'memory_mb': inst['memory_mb'],
                         'vcpus': inst['vcpus'],
                         'disk_gb': inst['local_gb'],
-                        'image_id': inst['image_id'],
+                        'image_id': int(inst['image_id']),
                         'kernel_id': inst['kernel_id'],
                         'ramdisk_id': inst['ramdisk_id'],
                         'user_id': inst['user_id'],

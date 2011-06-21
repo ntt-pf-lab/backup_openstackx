@@ -8,16 +8,30 @@ class User(base.Resource):
     def delete(self):
         self.manager.delete(self)
 
-    def update(self, description=None, enabled=None):
-        description = description or self.description or '(none)'
-        self.manager.update(self.id, description, enabled)
-
 
 class UserManager(base.ManagerWithFind):
     resource_class = User
 
     def get(self, user_id):
         return self._get("/users/%s" % user_id, "user")
+
+    def update_email(self, user_id, email):
+        params = {"user": {"id": user_id,
+                           "email": email }}
+
+        self._update("/users/%s" % user_id, params)
+
+    def update_password(self, user_id, password):
+        params = {"user": {"id": user_id,
+                           "password": password }}
+
+        self._update("/users/%s/password" % user_id, params)
+
+    def update_tenant(self, user_id, tenant_id):
+        params = {"user": {"id": user_id,
+                           "tenantId": tenant_id }}
+
+        self._update("/users/%s/tenant" % user_id, params)
 
     def create(self, user_id, email, password, tenant_id, enabled=True):
         params = {"user": {"id": user_id,
@@ -40,3 +54,6 @@ class UserManager(base.ManagerWithFind):
         :rtype: list of :class:`User`
         """
         return self._list("/users", "users")
+
+    def get_for_tenant(self, tenant_id):
+        return self._get("/tenants/%s/users" % tenant_id, "users")
