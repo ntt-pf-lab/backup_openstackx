@@ -5,36 +5,29 @@ from setuptools import setup, find_packages
 def read(fname):
     return open(os.path.join(os.path.dirname(__file__), fname)).read()
 
-requirements = ['httplib2', 'argparse', 'prettytable']
+requirements = ['httplib2', 'openstack.api']
 if sys.version_info < (2,6):
     requirements.append('simplejson')
 
 setup(
-    name = "openstack.api",
-    version = "2.0a1",
-    description = "Client library for the OpenStack Compute API",
+    name = "openstackx",
+    version = "0.2",
+    description = "Client library extensions for the OpenStack API",
     long_description = read('README.rst'),
-    url = 'http://openstack.compute.rtfd.org/',
-    license = 'BSD',
-    author = 'Jacob Kaplan-Moss',
-    author_email = 'jacob@jacobian.org',
+    url = 'http://github.com/cloudbuilders/openstackx/',
+    license = 'Apache 2.0',
+    author = 'Anthony Young',
+    author_email = 'sleepsonthefloor@gmail.com',
     packages = find_packages(exclude=['tests']),
     classifiers = [
-        'Development Status :: 5 - Production/Stable',
-        'Environment :: Console',
         'Intended Audience :: Developers',
         'Intended Audience :: Information Technology',
-        'License :: OSI Approved :: BSD License',
+        'License :: OSI Approved :: Apache 2.0 License',
         'Operating System :: OS Independent',
         'Programming Language :: Python',
     ],
     namespace_packages = ["openstackx"],
     install_requires = requirements,
-    
     tests_require = ["nose", "mock"],
     test_suite = "nose.collector",
-    
-    entry_points = {
-        'console_scripts': ['openstack-api = openstack.api.shell:main']
-    }
 )
