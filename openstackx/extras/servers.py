@@ -79,7 +79,7 @@ class ServerManager(compute.ServerManager):
         #             the id (part after last /) uses the default glance.
         body = {"server": {
             "name": name,
-            "imageRef": get_href(image.links).split('/')[-1],
+            "imageRef": image['id'],
             "flavorRef": get_href(flavor.links),
         }}
         if ipgroup:
