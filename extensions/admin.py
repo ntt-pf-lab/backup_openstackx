@@ -495,6 +495,8 @@ class UsageController(object):
         return rval.values()
 
     def _parse_datetime(self, dtstr):
+        if isinstance(dtstr, datetime):
+            return dtstr
         try:
             return datetime.strptime(dtstr, "%Y-%m-%dT%H:%M:%S")
         except:
