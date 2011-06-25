@@ -108,6 +108,9 @@ class Resource(object):
     def haskey(self, k):
         return k in self.__dict__
 
+    def to_dict(self, k):
+        return self._info
+
     def __getattr__(self, k):
         if k not in self.__dict__:
             raise AttributeError(k)
