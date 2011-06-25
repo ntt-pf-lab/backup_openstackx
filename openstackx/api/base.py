@@ -108,7 +108,7 @@ class Resource(object):
     def haskey(self, k):
         return k in self.__dict__
 
-    def to_dict(self, k):
+    def to_dict(self):
         return self._info
 
     def __getattr__(self, k):
