@@ -362,10 +362,12 @@ class UsageController(object):
 
         launched_at = terminated_at = None
         if instance['terminated_at'] is not None:
-            terminated_at = datetime.strptime(instance['terminated_at'], "%Y-%m-%d %H:%M:%S.%f")
+            if not isinstance(instance['terminated_at'], datetime):
+                terminated_at = datetime.strptime(instance['terminated_at'], "%Y-%m-%d %H:%M:%S.%f")
 
         if instance['launched_at'] is not None:
-            launched_at = datetime.strptime(instance['launched_at'], "%Y-%m-%d %H:%M:%S.%f")
+            if not isinstance(instance['launched_at'], datetime):
+                launched_at = datetime.strptime(instance['launched_at'], "%Y-%m-%d %H:%M:%S.%f")
 
         if terminated_at and terminated_at < period_start:
             return 0
