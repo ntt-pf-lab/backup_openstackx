@@ -6,6 +6,7 @@ from openstackx.extras.servers import ServerManager
 from openstackx.extras.tenants import TenantManager
 from openstackx.extras.users import UserManager
 from openstackx.extras.usage import UsageManager
+from openstackx.extras.role_refs import RoleRefManager
 from openstackx.api.config import Config
 
 
@@ -82,6 +83,7 @@ class Account(object):
         self.connection = ApiConnection(self.config)
         self.tenants = TenantManager(self)
         self.users = UserManager(self)
+        self.role_refs = RoleRefManager(self)
 
     def authenticate(self):
         """
