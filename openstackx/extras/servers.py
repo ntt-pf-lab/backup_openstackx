@@ -46,7 +46,7 @@ class ServerManager(compute.ServerManager):
             body["server"]["adminPass"] = password
         self._update("/extras/servers/%s" % base.getid(server), body)
 
-    def create(self, name, image, flavor, ipgroup=None, meta=None, files=None, key_name=None, user_data=None):
+    def create(self, name, image, flavor, ipgroup=None, meta=None, files=None, key_name=None, user_data=None, security_groups=None):
         """
         Create (boot) a new server.
 
@@ -88,6 +88,8 @@ class ServerManager(compute.ServerManager):
             body["server"]["metadata"] = meta
         if key_name:
             body["server"]["user_data"] = user_data
+        if security_groups:
+            body["server"]["security_groups"] = ','.join(security_groups)
 
         # Files are a slight bit tricky. They're passed in a "personality"
         # list to the POST. Each item is a dict giving a file name and the

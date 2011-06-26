@@ -109,6 +109,20 @@ class OverrideHelper(create_instance_helper.CreateInstanceHelper):
 
         reservation_id = body['server'].get('reservation_id')
 
+        security_groups = filter(bool, body['server']
+                                       .get('security_groups', '')
+                                       .split(',')) + ['default']
+
+        for group_name in security_groups:
+            if not db.security_group_exists(context,
+                                            context.project_id,
+                                            group_name):
+                group = {'user_id': context.user_id,
+                         'project_id': context.project_id,
+                         'name': group_name,
+                         'description': ''}
+                db.security_group_create(context, group)
+
         try:
             inst_type = \
                     instance_types.get_instance_type_by_flavor_id(flavor_id)
@@ -131,6 +145,7 @@ class OverrideHelper(create_instance_helper.CreateInstanceHelper):
                                   injected_files=injected_files,
                                   admin_password=password,
                                   zone_blob=zone_blob,
+                                  security_group=security_groups,
                                   reservation_id=reservation_id))
         except quota.QuotaError as error:
             self._handle_quota_error(error)
@@ -206,6 +221,10 @@ class ExtrasServerController(openstack_api.servers.ControllerV11):
                 self._build_extended_attributes(response, inst)
 
             def _build_extended_attributes(self, response, inst):
+            
+                security_groups = [i.name for i in inst.get(
+                                    'security_groups', [])]
+                print security_groups
                 attrs = {'name': inst['display_name'],
                         'memory_mb': inst['memory_mb'],
                         'vcpus': inst['vcpus'],
@@ -214,6 +233,7 @@ class ExtrasServerController(openstack_api.servers.ControllerV11):
                         'kernel_id': inst['kernel_id'],
                         'ramdisk_id': inst['ramdisk_id'],
                         'user_id': inst['user_id'],
+                        'security_groups': security_groups,
                         # TODO remove project_id
                         'project_id': inst['project_id'],
                         'scheduled_at': inst['scheduled_at'],

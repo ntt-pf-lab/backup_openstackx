@@ -40,9 +40,9 @@ print accounts.role_refs.get_for_user('joeadmin')
 print accounts.role_refs.get_for_user('joeuser')
 print "hooray"
 print "-----"
-print accounts.role_refs.add_for_tenant_user('1234', 'joeuser', 'Member')
+print accounts.role_refs.add_for_tenant_user('1234', 'joeuser', 'Admin')
 
-print accounts.role_refs.delete_for_tenant_user('1234', 'joeuser', 'Member')
+print accounts.role_refs.delete_for_tenant_user('1234', 'joeuser', 'Admin')
 print "-----"
 #print accounts.tenants.get_tenant_users('1234')
 print "-----"
