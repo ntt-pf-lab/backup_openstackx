@@ -481,7 +481,7 @@ class UsageController(object):
             else:
                 delta = now - self._parse_datetime(o['started_at'])
 
-            o['uptime'] = delta.days + 24 * 60 + delta.seconds
+            o['uptime'] = delta.days * 24 * 60 + delta.seconds
 
             if not o['tenant_id'] in rval:
                 summary = {}
