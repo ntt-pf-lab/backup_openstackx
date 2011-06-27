@@ -224,7 +224,6 @@ class ExtrasServerController(openstack_api.servers.ControllerV11):
             
                 security_groups = [i.name for i in inst.get(
                                     'security_groups', [])]
-                print security_groups
                 attrs = {'name': inst['display_name'],
                         'memory_mb': inst['memory_mb'],
                         'vcpus': inst['vcpus'],

@@ -86,8 +86,10 @@ class ServerManager(compute.ServerManager):
             body["server"]["sharedIpGroupId"] = base.getid(ipgroup)
         if meta:
             body["server"]["metadata"] = meta
-        if key_name:
+        if user_data:
             body["server"]["user_data"] = user_data
+        if key_name:
+            body["server"]["key_name"] = key_name
         if security_groups:
             body["server"]["security_groups"] = ','.join(security_groups)
 
