@@ -15,7 +15,6 @@ else:
 auth = openstackx.auth.Auth(management_url='http://%s:8080/v2.0/' % host)
 token = auth.tokens.create('1234', 'admin', 'secrete')
 print token._info
-thi=s
 
 admin_token = auth.tokens.create('1234', 'admin', 'secrete')
 accounts = openstackx.extras.Account(auth_token=admin_token.id,
