@@ -374,20 +374,21 @@ class AdminFlavorController(ExtrasFlavorController):
 class UsageController(object):
 
     def _hours_for(self, instance, period_start, period_stop):
-        print period_start
-        print period_stop
         # nothing if it stopped before the usage report start
         #terminated_at = instance['terminated_at']
         #launched_at = instance['launched_at']
 
-        launched_at = terminated_at = None
-        if instance['terminated_at'] is not None:
-            if not isinstance(instance['terminated_at'], datetime):
-                terminated_at = datetime.strptime(instance['terminated_at'], "%Y-%m-%d %H:%M:%S.%f")
+        launched_at = instance['launched_at']
+        terminated_at = instance['terminated_at']
+        if terminated_at is not None:
+            if not isinstance(terminated_at, datetime):
+                LOG.info(_("woot Pre Launched At %s"), terminated_at)
+                terminated_at = datetime.strptime(terminated_at, "%Y-%m-%d %H:%M:%S.%f")
 
-        if instance['launched_at'] is not None:
-            if not isinstance(instance['launched_at'], datetime):
-                launched_at = datetime.strptime(instance['launched_at'], "%Y-%m-%d %H:%M:%S.%f")
+        if launched_at is not None:
+            if not isinstance(launched_at, datetime):
+                LOG.info(_("woot Pre Launched At %s"), launched_at)
+                launched_at = datetime.strptime(launched_at, "%Y-%m-%d %H:%M:%S.%f")
 
         if terminated_at and terminated_at < period_start:
             return 0
