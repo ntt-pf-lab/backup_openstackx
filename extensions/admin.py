@@ -145,6 +145,7 @@ class OverrideHelper(create_instance_helper.CreateInstanceHelper):
                                   injected_files=injected_files,
                                   admin_password=password,
                                   zone_blob=zone_blob,
+                                  user_data=body['server'].get('user_data', None),
                                   security_group=security_groups,
                                   reservation_id=reservation_id))
         except quota.QuotaError as error:
