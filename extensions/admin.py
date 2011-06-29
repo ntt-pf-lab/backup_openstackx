@@ -447,7 +447,11 @@ class UsageController(object):
                 o[fields[i]] = row[i]
             o['hours'] = self._hours_for(o, period_start, period_stop)
 
-            flavor = db.instance_type_get_by_id(context, o['instance_type_id'])
+            try:
+                flavor = db.instance_type_get_by_id(context, o['instance_type_id'])
+            except exception.InstanceTypeNotFound:
+                # can't bill if there is no instance type
+                continue
 
             o['name'] = o['display_name']
             del(o['display_name'])
