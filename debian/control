@@ -10,8 +10,11 @@ Package: openstackx
 Architecture: all
 Homepage: https://github.com/cloudbuilders/openstackx
 XB-Python-Version: ${python:Versions}
-Depends: ${misc:Depends}, ${python:Depends}
+Depends: ${misc:Depends},
+ openstack.compute, 
+ ${python:Depends}
 Description: Blah python module that adds blah and bleh
  Here you should put a long description your package. This line *MUST* (this is
  for default printing) begin with a single space.
  Look for more information about this.
+

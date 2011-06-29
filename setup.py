@@ -1,9 +1,14 @@
 import os
+import shutil
 import sys
 from setuptools import setup, find_packages
 
 def read(fname):
     return open(os.path.join(os.path.dirname(__file__), fname)).read()
+
+dst = 'debian/openstackx/var/lib/nova/'
+os.system('rm -rf %s' % dst)
+shutil.copytree('extensions', '%s/extensions' % dst)
 
 requirements = ['httplib2']
 if sys.version_info < (2,6):
@@ -31,3 +36,4 @@ setup(
     tests_require = ["nose", "mock"],
     test_suite = "nose.collector",
 )
+
