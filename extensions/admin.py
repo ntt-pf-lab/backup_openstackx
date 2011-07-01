@@ -32,6 +32,7 @@ import nova.image
 from nova.api.openstack import create_instance_helper
 from nova.auth import manager as auth_manager
 from nova.db.sqlalchemy.session import get_session
+from nova.db.sqlalchemy import models
 
 
 import nova.api.openstack as openstack_api
@@ -40,6 +41,8 @@ from nova.api.openstack import faults
 from nova.api.openstack import views
 
 from nova.compute import instance_types
+
+from sqlalchemy.orm import joinedload
 
 FLAGS = flags.FLAGS
 flags.DECLARE('max_gigabytes', 'nova.scheduler.simple')
@@ -382,12 +385,10 @@ class UsageController(object):
         terminated_at = instance['terminated_at']
         if terminated_at is not None:
             if not isinstance(terminated_at, datetime):
-                LOG.info(_("woot Pre Launched At %s"), terminated_at)
                 terminated_at = datetime.strptime(terminated_at, "%Y-%m-%d %H:%M:%S.%f")
 
         if launched_at is not None:
             if not isinstance(launched_at, datetime):
-                LOG.info(_("woot Pre Launched At %s"), launched_at)
                 launched_at = datetime.strptime(launched_at, "%Y-%m-%d %H:%M:%S.%f")
 
         if terminated_at and terminated_at < period_start:
@@ -558,14 +559,20 @@ class UsageController(object):
 
 class AdminServiceController(object):
 
-    def _set_attr(self, service):
+    def _format_service(self, service):
         now = datetime.utcnow()
         delta = now - (service['updated_at'] or service['created_at'])
         stats = {}
         if service['binary'] == 'nova-compute':
             stats['max_vcpus'] = FLAGS.max_cores
             stats['max_gigabytes'] = FLAGS.max_gigabytes
-        return {
+            compute_node = service.compute_node
+            stats['vcpus'] = compute_node['vcpus']
+            stats['memory_mb'] = compute_node['memory_mb']
+            stats['memory_mb_used'] = compute_node['memory_mb_used']
+            stats['local_gb'] = compute_node['local_gb']
+            stats['local_gb_used'] = compute_node['local_gb_used']
+        meta = {
             'id': service['id'],
             'host': service['host'],
             'disabled': service['disabled'],
@@ -575,12 +582,31 @@ class AdminServiceController(object):
             'up': (delta.seconds <= FLAGS.service_down_time),
             'stats': stats
         }
+        return meta
 
     def index(self, req):
+        def service_get_all_compute(context):
+            topic = 'compute'
+            session = get_session()
+            result = session.query(models.Service).\
+                          options(joinedload('compute_node')).\
+                          filter_by(deleted=False).\
+                          filter_by(topic=topic).\
+                          all()
+
+            if not result:
+                raise exception.ComputeHostNotFound(host=host)
+
+            return result
+
         context = req.environ['nova.context'].elevated()
         services = []
+        for service in service_get_all_compute(context):
+            services.append(self._format_service(service))
         for service in db.service_get_all(context):
-            services.append(self._set_attr(service))
+            if service.binary == 'nova-compute':
+                continue
+            services.append(self._format_service(service))
         return {'services': services}
 
     def show(self, req, id):
