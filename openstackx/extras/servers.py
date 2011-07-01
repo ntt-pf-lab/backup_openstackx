@@ -1,3 +1,4 @@
+import base64
 from openstackx.api import base
 from openstackx import compute
 
@@ -87,7 +88,7 @@ class ServerManager(compute.ServerManager):
         if meta:
             body["server"]["metadata"] = meta
         if user_data:
-            body["server"]["user_data"] = user_data
+            body["server"]["user_data"] = base64.b64encode(user_data)
         if key_name:
             body["server"]["key_name"] = key_name
         if security_groups:
