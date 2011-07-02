@@ -31,6 +31,8 @@ admin = openstackx.admin.Admin(auth_token=token.id,
 compute = openstackx.compute.Compute(auth_token=token.id,
                                     auth_url='http://%s:8774/v1.1/' % host,
                                     management_url='http://%s:8774/v1.1/' % host)
+services =  admin.services.list()
+print services
 
 print "-----"
 print "-----"
