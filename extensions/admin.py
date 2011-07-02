@@ -15,6 +15,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import json
 import urlparse
 
 from datetime import datetime
@@ -564,14 +565,20 @@ class AdminServiceController(object):
         delta = now - (service['updated_at'] or service['created_at'])
         stats = {}
         if service['binary'] == 'nova-compute':
+            # FIXME: the following 2 fields should be reported on a
+            #  host-by-host basis
             stats['max_vcpus'] = FLAGS.max_cores
             stats['max_gigabytes'] = FLAGS.max_gigabytes
-            compute_node = service.compute_node
+            compute_node = service.compute_node[0]
             stats['vcpus'] = compute_node['vcpus']
+            stats['vcpus_used'] = compute_node['vcpus_used']
             stats['memory_mb'] = compute_node['memory_mb']
             stats['memory_mb_used'] = compute_node['memory_mb_used']
             stats['local_gb'] = compute_node['local_gb']
             stats['local_gb_used'] = compute_node['local_gb_used']
+            stats['hypervisor_type'] = compute_node['hypervisor_type']
+            stats['hypervisor_version'] = compute_node['hypervisor_version']
+            stats['cpu_info'] = json.loads(compute_node['cpu_info'])
         meta = {
             'id': service['id'],
             'host': service['host'],
