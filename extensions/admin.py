@@ -318,6 +318,21 @@ class ExtrasConsoleController(object):
         return {'console':{'id': '', 'type': console_type, 'output': output}}
 
 
+class ExtrasSnapshotController(object):
+    def create(self, req, body):
+        context = req.environ['nova.context'].elevated()
+        instance_id = body['snapshot'].get('instance_id')
+        name = body['snapshot'].get('name')
+
+        compute_api = compute.API()
+        meta = compute_api.snapshot(context, instance_id, name, {'is_public': True})
+
+        return { 'snapshot': {'id': '',
+                              'instance_id': instance_id,
+                              'meta': meta,
+                              'name': name }}
+
+
 class ExtrasFlavorController(openstack_api.flavors.ControllerV11):
     def _get_view_builder(self, req):
         class ViewBuilder(views.flavors.ViewBuilderV11):
@@ -778,4 +793,6 @@ class Admin(object):
                                              ExtrasServerController()))
         resources.append(extensions.ResourceExtension('extras/keypairs',
                                              ExtrasKeypairController()))
+        resources.append(extensions.ResourceExtension('extras/snapshots',
+                                             ExtrasSnapshotController()))
         return resources
