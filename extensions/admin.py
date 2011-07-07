@@ -75,7 +75,10 @@ class AdminQuotasController(object):
                     value = 'unlimited'
                 else:
                     value = int(body['quota'][key])
-                    db.quota_update(context, project_id, key, value)
+                    try:
+                        db.quota_update(context, project_id, key, value)
+                    except exception.ProjectQuotaNotFound:
+                        db.quota_create(context, project_id, key, value)
 
 class OverrideHelper(create_instance_helper.CreateInstanceHelper):
     """Allows keypair name to be passed in request."""
