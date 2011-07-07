@@ -44,13 +44,38 @@ from nova.api.openstack import views
 from nova.compute import instance_types
 
 from sqlalchemy.orm import joinedload
-
+import sys
 FLAGS = flags.FLAGS
 flags.DECLARE('max_gigabytes', 'nova.scheduler.simple')
 flags.DECLARE('max_cores', 'nova.scheduler.simple')
 
 LOG = logging.getLogger('nova.api.openstack.admin')
 
+
+class AdminQuotasController(object):
+
+    def index(self, req):
+        return {'quotas': quota._get_default_quotas()}
+
+    def show(self, req, id):
+        context = req.environ['nova.context']
+        project_id = id
+        return {'quota': quota.get_project_quotas(context, project_id)}
+    
+    def update(self, req, id, body):
+        context = req.environ['nova.context']
+        project_id = id
+        resources = ['metadata_items', 'injected_file_content_bytes',
+                'volumes', 'gigabytes', 'ram', 'floating_ips', 'instances',
+                'injected_files', 'cores']
+
+        for key in body['quota'].keys():
+            if key in resources:
+                if body['quota'][key] == 'None':
+                    value = 'unlimited'
+                else:
+                    value = int(body['quota'][key])
+                    db.quota_update(context, project_id, key, value)
 
 class OverrideHelper(create_instance_helper.CreateInstanceHelper):
     """Allows keypair name to be passed in request."""
@@ -766,6 +791,8 @@ class Admin(object):
                                                  AdminProjectController()))
         resources.append(extensions.ResourceExtension('admin/services',
                                                  AdminServiceController()))
+        resources.append(extensions.ResourceExtension('admin/quotas',
+                                                 AdminQuotasController()))
         resources.append(extensions.ResourceExtension('extras/consoles',
                                              ExtrasConsoleController()))
         resources.append(extensions.ResourceExtension('admin/flavors',
