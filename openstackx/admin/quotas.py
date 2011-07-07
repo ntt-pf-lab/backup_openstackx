@@ -22,11 +22,7 @@ class QuotaManager(base.ManagerWithFind):
         return self._get("/admin/quotas/%s" % (tenant_id), "quota")
 
     def update(self, tenant_id, **kwargs):
-        attributes = {}
-        for arg in kwargs:
-            attributes[arg] = kwargs[arg]
-
-        body = {"quota": attributes}
+        body = {"quota": kwargs}
 
         return self._update('/admin/quotas/%s' % (tenant_id), body)
 
