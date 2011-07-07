@@ -279,7 +279,7 @@ class ExtrasServerController(openstack_api.servers.ControllerV11):
 
         if 'name' in body['server']:
             name = body['server']['name']
-            self._validate_server_name(name)
+            self.helper._validate_server_name(name)
             update_dict['display_name'] = name.strip()
 
         if 'description' in body['server']:
