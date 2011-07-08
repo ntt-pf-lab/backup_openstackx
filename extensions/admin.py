@@ -54,7 +54,7 @@ LOG = logging.getLogger('nova.api.openstack.admin')
 
 class AdminQuotasController(object):
     def _format_quota_set(self, project_id, quota_set):
-        """Convert the project object to a result dict"""
+        """Convert the quota object to a result dict"""
         if quota_set:
             return {
                 'tenantId': project_id,
