@@ -53,17 +53,35 @@ LOG = logging.getLogger('nova.api.openstack.admin')
 
 
 class AdminQuotasController(object):
+    def _format_quota_set(self, req, project_id):
+        """Convert the project object to a result dict"""
+        context = req.environ['nova.context']
+        quota_set = quota.get_project_quotas(context, project_id)
+        if quota_set:
+            return {
+                'tenantId': project_id,
+                'metadata_items': quota_set['metadata_items'],
+                'injected_file_content_bytes': quota_set['injected_file_content_bytes'],
+                'volumes': quota_set['volumes'],
+                'gigabytes': quota_set['gigabytes'],
+                'ram': quota_set['ram'],
+                'floating_ips': quota_set['floating_ips'],
+                'instances': quota_set['instances'],
+                'injected_files': quota_set['injected_files'],
+                'cores': quota_set['cores'],
+            }
+        else:
+            return {}
 
     def index(self, req):
         context = req.environ['nova.context']
         user = req.environ.get('user')
-        manager = auth_manager.AuthManager()
-        projects = manager.get_projects(user=context.user_id)
-        quota_set = {}
-        for project in projects:
-            quota_set[project.name] = quota.get_project_quotas(context,
-            project.name)
-        return {'QuotaSetList': quota_set}
+        projects = auth_manager.AuthManager().get_projects(user=user)
+
+        quota_set_list = [self._format_quota_set(req, project.name) 
+                          for project in projects]
+
+        return {'quota_set_list': quota_set_list}
 
     def show(self, req, id):
         context = req.environ['nova.context']

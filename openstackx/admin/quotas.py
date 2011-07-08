@@ -3,7 +3,7 @@ from openstackx.api import base
 
 class TenantQuotaSet(base.Resource):
     def __repr__(self):
-        return "<TenantQuotaSet>"
+        return "<TenantQuotaSet: %s>" % self.tenantId
 
     def delete(self):
         self.manager.delete(self)
@@ -16,7 +16,7 @@ class TenantQuotaSetManager(base.ManagerWithFind):
     resource_class = TenantQuotaSet
 
     def list(self):
-        return self._list("/admin/quotas", "QuotaSetList")
+        return self._list("/admin/quotas", "quota_set_list")
 
     def get(self, tenant_id):
         return self._get("/admin/quotas/%s" % (tenant_id), "QuotaSet")
