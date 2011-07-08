@@ -2,7 +2,7 @@ from openstackx.api.connection import ApiConnection
 from openstackx.admin.projects import ProjectManager
 from openstackx.admin.services import ServiceManager
 from openstackx.admin.flavors import FlavorManager
-from openstackx.admin.quotas import QuotaManager
+from openstackx.admin.quotas import TenantQuotaSetManager
 from openstackx.api.config import Config
 
 
@@ -30,7 +30,7 @@ class Admin(object):
         self.projects = ProjectManager(self)
         self.services = ServiceManager(self)
         self.flavors = FlavorManager(self)
-        self.quotas = QuotaManager(self)
+        self.quotas = TenantQuotaSetManager(self)
 
     def authenticate(self):
         """
