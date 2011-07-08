@@ -19,7 +19,7 @@ class TenantQuotaSetManager(base.ManagerWithFind):
         return self._list("/admin/quotas", "quota_set_list")
 
     def get(self, tenant_id):
-        return self._get("/admin/quotas/%s" % (tenant_id), "QuotaSet")
+        return self._get("/admin/quotas/%s" % (tenant_id), "quota_set")
 
     def update(self, tenant_id, **kwargs):
         """ Update TenantQuotaSet
