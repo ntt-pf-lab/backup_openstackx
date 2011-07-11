@@ -97,14 +97,11 @@ class AdminQuotasController(object):
 
         for key in body['quota_set'].keys():
             if key in resources:
-                if body['quota_set'][key] == 'None':
-                    value = 'unlimited'
-                else:
-                    value = int(body['quota_set'][key])
-                    try:
-                        db.quota_update(context, project_id, key, value)
-                    except exception.ProjectQuotaNotFound:
-                        db.quota_create(context, project_id, key, value)
+                value = int(body['quota_set'][key])
+                try:
+                    db.quota_update(context, project_id, key, value)
+                except exception.ProjectQuotaNotFound:
+                    db.quota_create(context, project_id, key, value)
         return {'quota_set': quota.get_project_quotas(context, project_id)}
 
 
