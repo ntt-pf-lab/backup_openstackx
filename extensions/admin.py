@@ -822,7 +822,7 @@ class Admin(object):
                                                  AdminProjectController()))
         resources.append(extensions.ResourceExtension('admin/services',
                                                  AdminServiceController()))
-        resources.append(extensions.ResourceExtension('admin/quotas',
+        resources.append(extensions.ResourceExtension('admin/quota_sets',
                                                  AdminQuotasController()))
         resources.append(extensions.ResourceExtension('extras/consoles',
                                              ExtrasConsoleController()))

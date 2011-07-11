@@ -16,10 +16,10 @@ class QuotaSetManager(base.ManagerWithFind):
     resource_class = QuotaSet
 
     def list(self):
-        return self._list("/admin/quotas", "quota_set_list")
+        return self._list("/admin/quota_sets", "quota_set_list")
 
     def get(self, tenant_id):
-        return self._get("/admin/quotas/%s" % (tenant_id), "quota_set")
+        return self._get("/admin/quota_sets/%s" % (tenant_id), "quota_set")
 
     def update(self, tenant_id, metadata_items=None,
                injected_file_content_bytes=None, volumes=None, gigabytes=None,
@@ -43,8 +43,8 @@ class QuotaSetManager(base.ManagerWithFind):
             if body['quota_set'][key] == None:
                 body['quota_set'].pop(key)
 
-        return self._update('/admin/quotas/%s' % (tenant_id), body)
+        return self._update('/admin/quota_sets/%s' % (tenant_id), body)
 
     def delete(self, tenant_id):
-        self._delete("/admin/quotas/%s" % (tenant_id))
+        self._delete("/admin/quota_sets/%s" % (tenant_id))
 
