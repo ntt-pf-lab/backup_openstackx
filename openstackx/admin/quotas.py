@@ -1,9 +1,9 @@
 from openstackx.api import base
 
 
-class TenantQuotaSet(base.Resource):
+class QuotaSet(base.Resource):
     def __repr__(self):
-        return "<TenantQuotaSet: %s>" % self.id
+        return "<QuotaSet: %s>" % self.id
 
     def delete(self):
         self.manager.delete(self)
@@ -12,8 +12,8 @@ class TenantQuotaSet(base.Resource):
         self.manager.update(self.tenant_id, *args, **kwargs)
 
 
-class TenantQuotaSetManager(base.ManagerWithFind):
-    resource_class = TenantQuotaSet
+class QuotaSetManager(base.ManagerWithFind):
+    resource_class = QuotaSet
 
     def list(self):
         return self._list("/admin/quotas", "quota_set_list")
@@ -26,7 +26,7 @@ class TenantQuotaSetManager(base.ManagerWithFind):
                ram=None, floating_ips=None, instances=None, injected_files=None,
                cores=None):
 
-        body = {'quota': {
+        body = {'quota_set': {
             'tenant_id': tenant_id,
             'metadata_items': metadata_items,
             'injected_file_content_bytes': injected_file_content_bytes,
@@ -39,9 +39,9 @@ class TenantQuotaSetManager(base.ManagerWithFind):
             'cores': cores,
         }}
 
-        for key in body['quota'].keys():
-            if body['quota'][key] == None:
-                body['quota'].pop(key)
+        for key in body['quota_set'].keys():
+            if body['quota_set'][key] == None:
+                body['quota_set'].pop(key)
 
         return self._update('/admin/quotas/%s' % (tenant_id), body)
 

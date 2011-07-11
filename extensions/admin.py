@@ -86,7 +86,7 @@ class AdminQuotasController(object):
         context = req.environ['nova.context']
         project_id = id
         return {'quota_set': self._format_quota_set(id,
-            quota.get_project_quotas(context, id))}
+                quota.get_project_quotas(context, id))}
 
     def update(self, req, id, body):
         context = req.environ['nova.context']
@@ -95,17 +95,17 @@ class AdminQuotasController(object):
                 'volumes', 'gigabytes', 'ram', 'floating_ips', 'instances',
                 'injected_files', 'cores']
 
-        for key in body['quota'].keys():
+        for key in body['quota_set'].keys():
             if key in resources:
-                if body['quota'][key] == 'None':
+                if body['quota_set'][key] == 'None':
                     value = 'unlimited'
                 else:
-                    value = int(body['quota'][key])
+                    value = int(body['quota_set'][key])
                     try:
                         db.quota_update(context, project_id, key, value)
                     except exception.ProjectQuotaNotFound:
                         db.quota_create(context, project_id, key, value)
-        return {'QuotaSet': quota.get_project_quotas(context, project_id)}
+        return {'quota_set': quota.get_project_quotas(context, project_id)}
 
 
 class OverrideHelper(create_instance_helper.CreateInstanceHelper):
