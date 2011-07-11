@@ -52,6 +52,59 @@ flags.DECLARE('max_cores', 'nova.scheduler.simple')
 LOG = logging.getLogger('nova.api.openstack.admin')
 
 
+class AdminQuotasController(object):
+    def _format_quota_set(self, project_id, quota_set):
+        """Convert the quota object to a result dict"""
+        if quota_set:
+            return {
+                'id': project_id,
+                'metadata_items': quota_set['metadata_items'],
+                'injected_file_content_bytes': quota_set['injected_file_content_bytes'],
+                'volumes': quota_set['volumes'],
+                'gigabytes': quota_set['gigabytes'],
+                'ram': quota_set['ram'],
+                'floating_ips': quota_set['floating_ips'],
+                'instances': quota_set['instances'],
+                'injected_files': quota_set['injected_files'],
+                'cores': quota_set['cores'],
+            }
+        else:
+            return {}
+
+    def index(self, req):
+        context = req.environ['nova.context']
+        user = req.environ.get('user')
+        projects = auth_manager.AuthManager().get_projects(user=user)
+
+        quota_set_list = [self._format_quota_set(project.name,
+                          quota.get_project_quotas(context, project.name))
+                          for project in projects]
+
+        return {'quota_set_list': quota_set_list}
+
+    def show(self, req, id):
+        context = req.environ['nova.context']
+        project_id = id
+        return {'quota_set': self._format_quota_set(id,
+                quota.get_project_quotas(context, id))}
+
+    def update(self, req, id, body):
+        context = req.environ['nova.context']
+        project_id = id
+        resources = ['metadata_items', 'injected_file_content_bytes',
+                'volumes', 'gigabytes', 'ram', 'floating_ips', 'instances',
+                'injected_files', 'cores']
+
+        for key in body['quota_set'].keys():
+            if key in resources:
+                value = int(body['quota_set'][key])
+                try:
+                    db.quota_update(context, project_id, key, value)
+                except exception.ProjectQuotaNotFound:
+                    db.quota_create(context, project_id, key, value)
+        return {'quota_set': quota.get_project_quotas(context, project_id)}
+
+
 class OverrideHelper(create_instance_helper.CreateInstanceHelper):
     """Allows keypair name to be passed in request."""
     def create_instance(self, req, body, create_method):
@@ -781,6 +834,8 @@ class Admin(object):
                                                  AdminProjectController()))
         resources.append(extensions.ResourceExtension('admin/services',
                                                  AdminServiceController()))
+        resources.append(extensions.ResourceExtension('admin/quota_sets',
+                                                 AdminQuotasController()))
         resources.append(extensions.ResourceExtension('extras/consoles',
                                              ExtrasConsoleController()))
         resources.append(extensions.ResourceExtension('admin/flavors',

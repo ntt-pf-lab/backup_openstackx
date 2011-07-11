@@ -31,8 +31,15 @@ admin = openstackx.admin.Admin(auth_token=token.id,
 compute = openstackx.compute.Compute(auth_token=token.id,
                                     auth_url='http://%s:8774/v1.1/' % host,
                                     management_url='http://%s:8774/v1.1/' % host)
-services =  admin.services.list()
-print services
+#services =  admin.services.list()
+
+print "#####################################################################"
+print admin.quotas.update('1234', instances=33, volumes=50)
+print admin.quotas.get('1234')._info
+print admin.quotas.list()
+print "#####################################################################"
+
+
 
 print "-----"
 print "-----"
