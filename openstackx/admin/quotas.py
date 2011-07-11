@@ -21,21 +21,27 @@ class TenantQuotaSetManager(base.ManagerWithFind):
     def get(self, tenant_id):
         return self._get("/admin/quotas/%s" % (tenant_id), "quota_set")
 
-    def update(self, tenant_id, **kwargs):
-        """ Update TenantQuotaSet
+    def update(self, tenant_id, metadata_items=None,
+               injected_file_content_bytes=None, volumes=None, gigabytes=None,
+               ram=None, floating_ips=None, instances=None, injected_files=None,
+               cores=None):
 
-            Accepted Keyword arguments:
-                metadata_items -- integer
-                injected_file_content_bytes -- integer
-                volumes -- integer
-                gigabytes -- integer
-                ram -- integer (in bytes)
-                floating_ips -- integer
-                instances -- integer
-                injected_files -- integer
-                cores -- integer
-        """
-        body = {'quota': kwargs}
+        body = {'quota': {
+            'tenant_id': tenant_id,
+            'metadata_items': metadata_items,
+            'injected_file_content_bytes': injected_file_content_bytes,
+            'volumes': volumes,
+            'gigabytes': gigabytes,
+            'ram': ram,
+            'floating_ips': floating_ips,
+            'instances': instances,
+            'injected_files': injected_files,
+            'cores': cores,
+        }}
+
+        for key in body['quota'].keys():
+            if body['quota'][key] == None:
+                body['quota'].pop(key)
 
         return self._update('/admin/quotas/%s' % (tenant_id), body)
 

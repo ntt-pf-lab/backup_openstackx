@@ -34,8 +34,8 @@ compute = openstackx.compute.Compute(auth_token=token.id,
 #services =  admin.services.list()
 
 print "#####################################################################"
-print admin.quotas.update('1234', instances=5, volumes=50)
-print admin.quotas.get('1234')
+print admin.quotas.update('1234', instances=33, volumes=50)
+print admin.quotas.get('1234')._info
 print admin.quotas.list()
 print "#####################################################################"
 
