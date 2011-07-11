@@ -30,7 +30,7 @@ class Admin(object):
         self.projects = ProjectManager(self)
         self.services = ServiceManager(self)
         self.flavors = FlavorManager(self)
-        self.quotas = QuotaSetManager(self)
+        self.quota_sets = QuotaSetManager(self)
 
     def authenticate(self):
         """
