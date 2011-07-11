@@ -3,6 +3,7 @@ from openstackx.extras.consoles import ConsoleManager
 from openstackx.extras.flavors import FlavorManager
 from openstackx.extras.keypairs import KeypairManager
 from openstackx.extras.servers import ServerManager
+from openstackx.extras.snapshots import SnapshotManager
 from openstackx.extras.tenants import TenantManager
 from openstackx.extras.users import UserManager
 from openstackx.extras.usage import UsageManager
@@ -36,6 +37,7 @@ class Extras(object):
         self.flavors = FlavorManager(self)
         self.servers = ServerManager(self)
         self.keypairs = KeypairManager(self)
+        self.snapshots = SnapshotManager(self)
 
     def authenticate(self):
         """
