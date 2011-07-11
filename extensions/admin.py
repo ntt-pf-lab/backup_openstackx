@@ -57,7 +57,7 @@ class AdminQuotasController(object):
         """Convert the quota object to a result dict"""
         if quota_set:
             return {
-                'tenantId': project_id,
+                'id': project_id,
                 'metadata_items': quota_set['metadata_items'],
                 'injected_file_content_bytes': quota_set['injected_file_content_bytes'],
                 'volumes': quota_set['volumes'],
