@@ -72,15 +72,18 @@ class AdminQuotasController(object):
             return {}
 
     def index(self, req):
-        context = req.environ['nova.context']
-        user = req.environ.get('user')
-        projects = auth_manager.AuthManager().get_projects(user=user)
+        if urlparse.parse_qs(req.environ['QUERY_STRING']).get('defaults', False):
+            return {'quota_set_list': [self._format_quota_set('__defaults__',
+                quota._get_default_quotas())]}
+        else:
+            context = req.environ['nova.context']
+            user = req.environ.get('user')
+            projects = auth_manager.AuthManager().get_projects(user=user)
 
-        quota_set_list = [self._format_quota_set(project.name,
-                          quota.get_project_quotas(context, project.name))
-                          for project in projects]
-
-        return {'quota_set_list': quota_set_list}
+            quota_set_list = [self._format_quota_set(project.name,
+                              quota.get_project_quotas(context, project.name))
+                              for project in projects]
+            return {'quota_set_list': quota_set_list}
 
     def show(self, req, id):
         context = req.environ['nova.context']

@@ -15,8 +15,12 @@ class QuotaSet(base.Resource):
 class QuotaSetManager(base.ManagerWithFind):
     resource_class = QuotaSet
 
-    def list(self):
-        return self._list("/admin/quota_sets", "quota_set_list")
+    def list(self, defaults=False):
+        if defaults == True:
+            return self._list('/admin/quota_sets?defaults=True',
+                              'quota_set_list')
+        else:
+            return self._list("/admin/quota_sets", "quota_set_list")
 
     def get(self, tenant_id):
         return self._get("/admin/quota_sets/%s" % (tenant_id), "quota_set")
