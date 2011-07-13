@@ -689,7 +689,7 @@ class AdminServiceController(object):
 
     def show(self, req, id):
         context = req.environ['nova.context'].elevated()
-        service = self._set_attr(db.service_get(context, id))
+        service = self._format_service(db.service_get(context, id))
         return {'service': service}
 
     def update(self, req, id, body):
