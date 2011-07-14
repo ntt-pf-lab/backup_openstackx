@@ -640,16 +640,17 @@ class AdminServiceController(object):
             #  host-by-host basis
             stats['max_vcpus'] = FLAGS.max_cores
             stats['max_gigabytes'] = FLAGS.max_gigabytes
-            compute_node = service.compute_node[0]
-            stats['vcpus'] = compute_node['vcpus']
-            stats['vcpus_used'] = compute_node['vcpus_used']
-            stats['memory_mb'] = compute_node['memory_mb']
-            stats['memory_mb_used'] = compute_node['memory_mb_used']
-            stats['local_gb'] = compute_node['local_gb']
-            stats['local_gb_used'] = compute_node['local_gb_used']
-            stats['hypervisor_type'] = compute_node['hypervisor_type']
-            stats['hypervisor_version'] = compute_node['hypervisor_version']
-            stats['cpu_info'] = json.loads(compute_node['cpu_info'])
+            if service.compute_node:
+                compute_node = service.compute_node[0]
+                stats['vcpus'] = compute_node['vcpus']
+                stats['vcpus_used'] = compute_node['vcpus_used']
+                stats['memory_mb'] = compute_node['memory_mb']
+                stats['memory_mb_used'] = compute_node['memory_mb_used']
+                stats['local_gb'] = compute_node['local_gb']
+                stats['local_gb_used'] = compute_node['local_gb_used']
+                stats['hypervisor_type'] = compute_node['hypervisor_type']
+                stats['hypervisor_version'] = compute_node['hypervisor_version']
+                stats['cpu_info'] = json.loads(compute_node['cpu_info'])
         meta = {
             'id': service['id'],
             'host': service['host'],
@@ -689,7 +690,7 @@ class AdminServiceController(object):
 
     def show(self, req, id):
         context = req.environ['nova.context'].elevated()
-        service = self._set_attr(db.service_get(context, id))
+        service = self._format_service(db.service_get(context, id))
         return {'service': service}
 
     def update(self, req, id, body):
