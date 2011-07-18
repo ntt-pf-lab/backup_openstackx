@@ -73,6 +73,8 @@ class ServerManager(compute.ServerManager):
             for l in link_list:
                 if l.get('type') == 'application/json':
                     return l['href']
+                if l.get('rel') == 'self':
+                    return l['href']
             return None
 
         # NOTE(vish): Split below is because compute is passing back a

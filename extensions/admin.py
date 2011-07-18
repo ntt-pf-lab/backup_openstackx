@@ -305,7 +305,7 @@ class ExtrasServerController(openstack_api.servers.ControllerV11):
                         'host': inst['host'],
                         'key_name': inst['key_name'],
                         'user_data': inst['user_data'],
-                        'mac_address': inst['mac_address'],
+                        #'mac_address': inst['mac_address'],
                         'os_type': inst['os_type'],
                         }
                 response['server']['attrs'] = attrs
