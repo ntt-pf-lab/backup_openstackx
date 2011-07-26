@@ -297,8 +297,13 @@ class ExtrasServerController(openstack_api.servers.ControllerV11):
     def index(self, req):
         # This has been revised so that it is less coupled with
         # the implementation of the Servers API, which is in flux
-        rval = openstack_api.servers.ControllerV11.index(self, req)
-        ids = [server['id'] for server in rval['servers']]
+
+        try:
+            servers = self._items(req, is_detail=True)
+        except exception.Invalid as err:
+            return exc.HTTPBadRequest(explanation=str(err))
+
+        ids = [server['id'] for server in servers['servers']]
 
         context = req.environ['nova.context']
         session = get_session()
@@ -308,9 +313,9 @@ class ExtrasServerController(openstack_api.servers.ControllerV11):
                                models.Instance.id.in_(ids)).all():
             instance_map[i.id] = i
         
-        for s in rval['servers']:
+        for s in servers['servers']:
             s['attrs'] = self._build_extended_attributes(instance_map[s['id']])
-        return rval
+        return servers
 
 
     # @scheduler_api.redirect_handler
