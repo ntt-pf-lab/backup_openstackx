@@ -264,62 +264,54 @@ def host_dict(host, compute_service, instances, volume_service, volumes, now):
 
 
 class ExtrasServerController(openstack_api.servers.ControllerV11):
-    def _get_view_builder(self, req):
-        class ViewBuilder(views.servers.ViewBuilderV11):
-            def __init__(self,
-                         addresses_builder,
-                         flavor_builder,
-                         image_builder,
-                         base_url):
-                views.servers.ViewBuilderV11.__init__(self,
-                                                      addresses_builder,
-                                                      flavor_builder,
-                                                      image_builder,
-                                                      base_url)
+    def _build_extended_attributes(self, inst):
+    
+        security_groups = [i.name for i in inst.get(
+                            'security_groups', [])]
+        attrs = {'name': inst['display_name'],
+                'memory_mb': inst['memory_mb'],
+                'vcpus': inst['vcpus'],
+                'disk_gb': inst['local_gb'],
+                'image_ref': inst['image_ref'],
+                'kernel_id': inst['kernel_id'],
+                'ramdisk_id': inst['ramdisk_id'],
+                'user_id': inst['user_id'],
+                'security_groups': security_groups,
+                # TODO remove project_id
+                'project_id': inst['project_id'],
+                'scheduled_at': inst['scheduled_at'],
+                'launched_at': inst['launched_at'],
+                'terminated_at': inst['terminated_at'],
+                'description': inst['display_description'],
+                'os_type': inst['os_type'],
+                'hostname': inst['hostname'],
+                'host': inst['host'],
+                'key_name': inst['key_name'],
+                'user_data': inst['user_data'],
+                #'mac_address': inst['mac_address'],
+                'os_type': inst['os_type'],
+                }
+        return attrs
 
-            def _build_extra(self, response, inst):
-                self._build_links(response, inst)
-                self._build_extended_attributes(response, inst)
-
-            def _build_extended_attributes(self, response, inst):
-            
-                security_groups = [i.name for i in inst.get(
-                                    'security_groups', [])]
-                attrs = {'name': inst['display_name'],
-                        'memory_mb': inst['memory_mb'],
-                        'vcpus': inst['vcpus'],
-                        'disk_gb': inst['local_gb'],
-                        'image_ref': inst['image_ref'],
-                        'kernel_id': inst['kernel_id'],
-                        'ramdisk_id': inst['ramdisk_id'],
-                        'user_id': inst['user_id'],
-                        'security_groups': security_groups,
-                        # TODO remove project_id
-                        'project_id': inst['project_id'],
-                        'scheduled_at': inst['scheduled_at'],
-                        'launched_at': inst['launched_at'],
-                        'terminated_at': inst['terminated_at'],
-                        'description': inst['display_description'],
-                        'os_type': inst['os_type'],
-                        'hostname': inst['hostname'],
-                        'host': inst['host'],
-                        'key_name': inst['key_name'],
-                        'user_data': inst['user_data'],
-                        #'mac_address': inst['mac_address'],
-                        'os_type': inst['os_type'],
-                        }
-                response['server']['attrs'] = attrs
-
-        base_url = req.application_url
-        flavor_builder = views.flavors.ViewBuilderV11(base_url)
-        image_builder = views.images.ViewBuilderV11(base_url)
-        addresses_builder = views.addresses.ViewBuilderV11()
-
-        return ViewBuilder(
-            addresses_builder, flavor_builder, image_builder, base_url)
 
     def index(self, req):
-        return self._items(req, is_detail=True)
+        # This has been revised so that it is less coupled with
+        # the implementation of the Servers API, which is in flux
+        rval = openstack_api.servers.ControllerV11.index(self, req)
+        ids = [server['id'] for server in rval['servers']]
+
+        context = req.environ['nova.context']
+        session = get_session()
+        
+        instance_map = {}
+        for i in session.query(models.Instance).filter(
+                               models.Instance.id.in_(ids)).all():
+            instance_map[i.id] = i
+        
+        for s in rval['servers']:
+            s['attrs'] = self._build_extended_attributes(instance_map[s['id']])
+        return rval
+
 
     # @scheduler_api.redirect_handler
     def update(self, req, id, body):
@@ -522,6 +514,9 @@ class UsageController(object):
 
             try:
                 flavor = db.instance_type_get_by_id(context, o['instance_type_id'])
+            except AttributeError:
+                # The most recent version of nova renamed this function
+                flavor = db.instance_type_get(context, o['instance_type_id'])
             except exception.InstanceTypeNotFound:
                 # can't bill if there is no instance type
                 continue
