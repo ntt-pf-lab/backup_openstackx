@@ -378,7 +378,7 @@ class ExtrasSnapshotController(object):
         name = body['snapshot'].get('name')
 
         compute_api = compute.API()
-        meta = compute_api.snapshot(context, instance_id, name, "snapshot")
+        meta = compute_api.snapshot(context, instance_id, name)
 
         return { 'snapshot': {'id': '',
                               'instance_id': instance_id,
