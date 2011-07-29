@@ -135,7 +135,7 @@ class OverrideHelper(create_instance_helper.CreateInstanceHelper):
         else:
             key_name = None
             key_data = None
-            key_pairs = auth_manager.AuthManager.get_key_pairs(context)
+            key_pairs = db.key_pair_get_all_by_user(context, context.user_id)
             if key_pairs:
                 key_pair = key_pairs[0]
                 key_name = key_pair['name']
@@ -268,7 +268,7 @@ def host_dict(host, compute_service, instances, volume_service, volumes, now):
 
 class ExtrasServerController(openstack_api.servers.ControllerV11):
     def _build_extended_attributes(self, inst):
-    
+
         security_groups = [i.name for i in inst.get(
                             'security_groups', [])]
         attrs = {'name': inst['display_name'],
@@ -310,12 +310,12 @@ class ExtrasServerController(openstack_api.servers.ControllerV11):
 
         context = req.environ['nova.context']
         session = get_session()
-        
+
         instance_map = {}
         for i in session.query(models.Instance).filter(
                                models.Instance.id.in_(ids)).all():
             instance_map[i.id] = i
-        
+
         for s in servers['servers']:
             s['attrs'] = self._build_extended_attributes(instance_map[s['id']])
         return servers
