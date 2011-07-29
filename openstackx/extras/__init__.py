@@ -8,6 +8,8 @@ from openstackx.extras.tenants import TenantManager
 from openstackx.extras.users import UserManager
 from openstackx.extras.usage import UsageManager
 from openstackx.extras.role_refs import RoleRefManager
+from openstackx.extras.security_groups import SecurityGroupManager
+from openstackx.extras.security_group_rules import SecurityGroupRuleManager
 from openstackx.api.config import Config
 
 
@@ -38,6 +40,8 @@ class Extras(object):
         self.servers = ServerManager(self)
         self.keypairs = KeypairManager(self)
         self.snapshots = SnapshotManager(self)
+        self.security_groups = SecurityGroupManager(self)
+        self.security_group_rules = SecurityGroupRuleManager(self)
 
     def authenticate(self):
         """

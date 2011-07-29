@@ -16,6 +16,8 @@
 #    under the License.
 
 import json
+import netaddr
+import urllib
 import urlparse
 
 from datetime import datetime
@@ -34,6 +36,7 @@ from nova.api.openstack import create_instance_helper
 from nova.auth import manager as auth_manager
 from nova.db.sqlalchemy.session import get_session
 from nova.db.sqlalchemy import models
+from nova.db.sqlalchemy import api as sqlalchemy_api
 
 
 import nova.api.openstack as openstack_api
@@ -812,6 +815,201 @@ class AdminProjectController(object):
         return exc.HTTPAccepted()
 
 
+
+
+class ExtrasSecurityGroupController(object):
+    def __init__(self):
+        self.compute_api = compute.API()
+
+    def _format_security_group_rule(self, context, rule):
+        r = {}
+        r['id'] = rule.id
+        r['parent_group_id'] = rule.parent_group_id
+        r['group_id'] = rule.group_id
+        r['ip_protocol'] = rule.protocol
+        r['from_port'] = rule.from_port
+        r['to_port'] = rule.to_port
+        r['groups'] = []
+        r['ip_ranges'] = []
+        if rule.group_id:
+            source_group = db.security_group_get(context, rule.group_id)
+            r['groups'] += [{'name': source_group.name,
+                             'tenant_id': source_group.project_id}]
+        else:
+            r['ip_ranges'] += [{'cidr': rule.cidr}]
+        return r
+
+    def _format_security_group(self, context, group):
+        g = {}
+        g['id'] = group.id
+        g['description'] = group.description
+        g['name'] = group.name
+        g['tenant_id'] = group.project_id
+        g['rules'] = []
+        for rule in group.rules:
+            r = self._format_security_group_rule(context, rule)
+            g['rules'] += [r]
+        return g
+
+    def index(self, req):
+        context = req.environ['nova.context']
+        self.compute_api.ensure_default_security_group(context)
+        if context.is_admin:
+            groups = db.security_group_get_all(context)
+        else:
+            groups = db.security_group_get_by_project(context,
+                                                      context.project_id)
+        groups = [self._format_security_group(context, g) for g in groups]
+
+        return {'security_groups':
+                list(sorted(groups,
+                            key=lambda k: (k['tenant_id'], k['name'])))}
+
+    def create(self, req, body):
+        context = req.environ['nova.context']
+        self.compute_api.ensure_default_security_group(context)
+        name = body['security_group'].get('name')
+        description = body['security_group'].get('description')
+        if db.security_group_exists(context, context.project_id, name):
+            raise exception.ApiError(_('group %s already exists') % name)
+
+        group = {'user_id': context.user_id,
+                 'project_id': context.project_id,
+                 'name': name,
+                 'description': description}
+        group_ref = db.security_group_create(context, group)
+
+        return {'security_group': self._format_security_group(context,
+                                                                 group_ref)}
+
+    def delete(self, req, id):
+        context = req.environ['nova.context']
+        self.compute_api.ensure_default_security_group(context)
+
+        LOG.audit(_("Delete security group %s"), id, context=context)
+        db.security_group_destroy(context, id)
+
+        return exc.HTTPAccepted()
+
+    def show(self, req, id):
+        context = req.environ['nova.context']
+        security_group = db.security_group_get(context, id)
+        return {'security_group': self._format_security_group(context,
+                                                              security_group)}
+
+
+class ExtrasSecurityGroupRuleController(ExtrasSecurityGroupController):
+    def __init__(self):
+        self.compute_api = compute.API()
+
+    def _revoke_rule_args_to_dict(self, context, to_port=None, from_port=None,
+                                  parent_group_id=None, ip_protocol=None,
+                                  cidr=None, group_id=None):
+        values = {}
+
+        if group_id:
+            values['group_id'] = group_id
+        elif cidr:
+            # If this fails, it throws an exception. This is what we want.
+            cidr = urllib.unquote(cidr).decode()
+            netaddr.IPNetwork(cidr)
+            values['cidr'] = cidr
+        else:
+            values['cidr'] = '0.0.0.0/0'
+
+        if ip_protocol and from_port and to_port:
+            from_port = int(from_port)
+            to_port = int(to_port)
+            ip_protocol = str(ip_protocol)
+
+            if ip_protocol.upper() not in ['TCP', 'UDP', 'ICMP']:
+                raise exception.InvalidIpProtocol(protocol=ip_protocol)
+            if ((min(from_port, to_port) < -1) or
+                (max(from_port, to_port) > 65535)):
+                raise exception.InvalidPortRange(from_port=from_port,
+                                                 to_port=to_port)
+
+            values['protocol'] = ip_protocol
+            values['from_port'] = from_port
+            values['to_port'] = to_port
+        else:
+            # If cidr based filtering, protocol and ports are mandatory
+            if 'cidr' in values:
+                return None
+
+        return values
+
+    def _security_group_rule_exists(self, security_group, values):
+        """Indicates whether the specified rule values are already
+           defined in the given security group.
+        """
+        for rule in security_group.rules:
+            if 'group_id' in values:
+                if rule['group_id'] == values['group_id']:
+                    return True
+            else:
+                is_duplicate = True
+                for key in ('cidr', 'from_port', 'to_port', 'protocol'):
+                    if rule[key] != values[key]:
+                        is_duplicate = False
+                        break
+                if is_duplicate:
+                    return True
+        return False
+
+    def create(self, req, body):
+        context = req.environ['nova.context']
+        group_id = body['security_group_rule']['parent_group_id']
+
+        self.compute_api.ensure_default_security_group(context)
+        security_group = db.security_group_get(context, group_id)
+        if not security_group:
+            raise exception.SecurityGroupNotFound(security_group_id=group_id)
+
+        msg = "Authorize security group ingress %s"
+        LOG.audit(_(msg), security_group['name'], context=context)
+        values = self._revoke_rule_args_to_dict(context,
+                                                **body['security_group_rule'])
+        if values is None:
+            raise exception.ApiError(_("Not enough parameters to build a "
+                                       "valid rule."))
+        values['parent_group_id'] = security_group.id
+
+        if self._security_group_rule_exists(security_group, values):
+            raise exception.ApiError(_('This rule already exists in group %s')
+                                     % group_id)
+
+        security_group_rule = db.security_group_rule_create(context, values)
+
+        self.compute_api.trigger_security_group_rules_refresh(context,
+                                      security_group_id=security_group['id'])
+
+        return {'security_group_rule': self._format_security_group_rule(
+                                                        context,
+                                                        security_group_rule)}
+
+    def delete(self, req, id):
+        context = req.environ['nova.context']
+        rule = sqlalchemy_api.security_group_rule_get(context, id)
+        if not rule:
+           raise exception.ApiError(_("Rule not found"))
+        group_id = rule.parent_group_id
+
+        self.compute_api.ensure_default_security_group(context)
+
+        security_group = db.security_group_get(context, group_id)
+        if not security_group:
+            raise exception.SecurityGroupNotFound(security_group_id=group_id)
+
+        msg = "Revoke security group ingress %s"
+        LOG.audit(_(msg), security_group['name'], context=context)
+
+        db.security_group_rule_destroy(context, rule['id'])
+        self.compute_api.trigger_security_group_rules_refresh(context,
+                                security_group_id=security_group['id'])
+        return exc.HTTPAccepted()
+
+
 class Admin(object):
 
     def __init__(self):
@@ -854,4 +1052,8 @@ class Admin(object):
                                              ExtrasKeypairController()))
         resources.append(extensions.ResourceExtension('extras/snapshots',
                                              ExtrasSnapshotController()))
+        resources.append(extensions.ResourceExtension('extras/security_groups',
+                                             ExtrasSecurityGroupController()))
+        resources.append(extensions.ResourceExtension('extras/security_group_rules',
+                                             ExtrasSecurityGroupRuleController()))
         return resources
