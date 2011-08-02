@@ -45,6 +45,7 @@ from nova.api.openstack import faults
 from nova.api.openstack import views
 
 from nova.compute import instance_types
+from nova.scheduler import api as scheduler_api
 
 from sqlalchemy.orm import joinedload
 
