@@ -321,6 +321,14 @@ class ExtrasServerController(openstack_api.servers.ControllerV11):
             s['attrs'] = self._build_extended_attributes(instance_map[s['id']])
         return servers
 
+    @scheduler_api.redirect_handler
+    def show(self, req, id):
+        """ Returns server details by server id """
+        rval = super(ExtrasServerController, self).show(req, id)
+        instance = self.compute_api.routing_get(
+            req.environ['nova.context'], id)
+        rval['server']['attrs'] = self._build_extended_attributes(instance)
+        return rval
 
     # @scheduler_api.redirect_handler
     def update(self, req, id, body):
