@@ -282,7 +282,7 @@ class ExtrasServerController(openstack_api.servers.ControllerV11):
                 'security_groups': security_groups,
                 # TODO remove project_id
                 'project_id': inst['project_id'],
-                'tenant_id': inst['tenant_id'],
+                'tenant_id': inst['project_id'],
                 'scheduled_at': inst['scheduled_at'],
                 'launched_at': inst['launched_at'],
                 'terminated_at': inst['terminated_at'],
