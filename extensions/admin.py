@@ -387,7 +387,7 @@ class ExtrasServerController(PrivilegedServerController):
 
 class ExtrasConsoleController(object):
     def create(self, req, body):
-        context = req.environ['nova.context'].elevated()
+        context = req.environ['nova.context']
         console_type = body['console'].get('type')
         server_id = body['console'].get('server_id')
         compute_api = compute.API()
@@ -404,7 +404,7 @@ class ExtrasConsoleController(object):
 
 class ExtrasSnapshotController(object):
     def create(self, req, body):
-        context = req.environ['nova.context'].elevated()
+        context = req.environ['nova.context']
         instance_id = body['snapshot'].get('instance_id')
         name = body['snapshot'].get('name')
 
@@ -451,7 +451,7 @@ class AdminFlavorController(ExtrasFlavorController):
         rxtx_quota = body['flavor'].get('rxtx_quota')
         rxtx_cap = body['flavor'].get('rxtx_cap')
 
-        context = req.environ['nova.context'].elevated()
+        context = req.environ['nova.context']
         flavor = instance_types.create(name, memory_mb, vcpus,
                                        local_gb, flavorid,
                                        swap, rxtx_quota, rxtx_cap)
@@ -709,7 +709,7 @@ class AdminServiceController(object):
 
             return result
 
-        context = req.environ['nova.context'].elevated()
+        context = req.environ['nova.context']
         services = []
         for service in service_get_all_compute(context):
             services.append(self._format_service(service))
@@ -720,12 +720,12 @@ class AdminServiceController(object):
         return {'services': services}
 
     def show(self, req, id):
-        context = req.environ['nova.context'].elevated()
+        context = req.environ['nova.context']
         service = self._format_service(db.service_get(context, id))
         return {'service': service}
 
     def update(self, req, id, body):
-        context = req.environ['nova.context'].elevated()
+        context = req.environ['nova.context']
         name = body['service'].get('disabled')
         db.service_update(context, id, body['service'])
         return exc.HTTPAccepted()
