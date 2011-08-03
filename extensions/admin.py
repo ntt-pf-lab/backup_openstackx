@@ -267,7 +267,7 @@ def host_dict(host, compute_service, instances, volume_service, volumes, now):
     return rv
 
 
-class AdminServerController(openstack_api.servers.ControllerV11):
+class PrivilegedServerController(openstack_api.servers.ControllerV11):
     def _build_extended_attributes(self, inst):
 
         security_groups = [i.name for i in inst.get(
@@ -324,7 +324,7 @@ class AdminServerController(openstack_api.servers.ControllerV11):
     @scheduler_api.redirect_handler
     def show(self, req, id):
         """ Returns server details by server id """
-        rval = super(AdminServerController, self).show(req, id)
+        rval = super(PrivilegedServerController, self).show(req, id)
         instance = self.compute_api.routing_get(
             req.environ['nova.context'], id)
         rval['server']['attrs'] = self._build_extended_attributes(instance)
@@ -361,7 +361,7 @@ class AdminServerController(openstack_api.servers.ControllerV11):
         return exc.HTTPNoContent()
 
     def __init__(self):
-        super(AdminServerController, self).__init__()
+        super(PrivilegedServerController, self).__init__()
         self.helper = OverrideHelper(self)
 
 
@@ -374,7 +374,9 @@ def downgrade_context(f):
     return new_f
 
 
-class ExtrasServerController(AdminServerController):
+class ExtrasServerController(PrivilegedServerController):
+    # Downgrade context so that admin's don't have to look
+    # at the entire cloud's instances from user dash
     @downgrade_context
     def index(self, req):
         return super(ExtrasServerController, self).index(req)
@@ -1065,7 +1067,7 @@ class Admin(object):
         resources.append(extensions.ResourceExtension('admin/quota_sets',
                                                  AdminQuotasController()))
         resources.append(extensions.ResourceExtension('admin/servers',
-                                             AdminServerController()))
+                                             PrivilegedServerController()))
         resources.append(extensions.ResourceExtension('extras/consoles',
                                              ExtrasConsoleController()))
         resources.append(extensions.ResourceExtension('admin/flavors',
