@@ -267,7 +267,7 @@ def host_dict(host, compute_service, instances, volume_service, volumes, now):
     return rv
 
 
-class ExtrasServerController(openstack_api.servers.ControllerV11):
+class AdminServerController(openstack_api.servers.ControllerV11):
     def _build_extended_attributes(self, inst):
 
         security_groups = [i.name for i in inst.get(
@@ -298,7 +298,6 @@ class ExtrasServerController(openstack_api.servers.ControllerV11):
                 }
         return attrs
 
-
     def index(self, req):
         # This has been revised so that it is less coupled with
         # the implementation of the Servers API, which is in flux
@@ -325,7 +324,7 @@ class ExtrasServerController(openstack_api.servers.ControllerV11):
     @scheduler_api.redirect_handler
     def show(self, req, id):
         """ Returns server details by server id """
-        rval = super(ExtrasServerController, self).show(req, id)
+        rval = super(AdminServerController, self).show(req, id)
         instance = self.compute_api.routing_get(
             req.environ['nova.context'], id)
         rval['server']['attrs'] = self._build_extended_attributes(instance)
@@ -361,10 +360,27 @@ class ExtrasServerController(openstack_api.servers.ControllerV11):
 
         return exc.HTTPNoContent()
 
+    def __init__(self):
+        super(AdminServerController, self).__init__()
+        self.helper = OverrideHelper(self)
+
+
+def downgrade_context(f):
+    def new_f(*args, **kwargs):
+        context = kwargs['req'].environ['nova.context']
+        context.is_admin = False
+        return f(*args, **kwargs)
+
+    return new_f
+
+
+class ExtrasServerController(AdminServerController):
+    @downgrade_context
+    def index(self, req):
+        return super(ExtrasServerController, self).index(req)
 
     def __init__(self):
         super(ExtrasServerController, self).__init__()
-        self.helper = OverrideHelper(self)
 
 
 class ExtrasConsoleController(object):
@@ -1048,6 +1064,8 @@ class Admin(object):
                                                  AdminServiceController()))
         resources.append(extensions.ResourceExtension('admin/quota_sets',
                                                  AdminQuotasController()))
+        resources.append(extensions.ResourceExtension('admin/servers',
+                                             AdminServerController()))
         resources.append(extensions.ResourceExtension('extras/consoles',
                                              ExtrasConsoleController()))
         resources.append(extensions.ResourceExtension('admin/flavors',
