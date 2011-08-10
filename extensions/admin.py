@@ -853,6 +853,7 @@ class AdminProjectController(object):
             db.security_group_destroy(context, group['id'])
         return exc.HTTPAccepted()
 
+
 class ExtrasSecurityGroupController(object):
     def __init__(self):
         self.compute_api = compute.API()
