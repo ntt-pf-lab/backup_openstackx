@@ -882,11 +882,8 @@ class ExtrasSecurityGroupController(object):
     def index(self, req):
         context = req.environ['nova.context']
         self.compute_api.ensure_default_security_group(context)
-        if context.is_admin:
-            groups = db.security_group_get_all(context)
-        else:
-            groups = db.security_group_get_by_project(context,
-                                                      context.project_id)
+        groups = db.security_group_get_by_project(context,
+                                                  context.project_id)
         groups = [self._format_security_group(context, g) for g in groups]
 
         return {'security_groups':
