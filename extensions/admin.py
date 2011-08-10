@@ -842,8 +842,16 @@ class AdminProjectController(object):
         auth_manager.AuthManager().delete_project(id)
         return exc.HTTPAccepted()
 
-
-
+    def scrub(self, req, id):
+        context = req.environ['nova.context']
+        LOG.audit(_("Delete allocated resources for project: %s"), id, context=context)
+        networks = db.project_get_networks(context, id)
+        for network in networks:
+            db.network_disassociate(context, network['id'])
+        groups = db.security_group_get_by_project(context, id)
+        for group in groups:
+            db.security_group_destroy(context, group['id'])
+        return exc.HTTPAccepted()
 
 class ExtrasSecurityGroupController(object):
     def __init__(self):
@@ -1061,7 +1069,8 @@ class Admin(object):
     def get_resources(self):
         resources = []
         resources.append(extensions.ResourceExtension('admin/projects',
-                                                 AdminProjectController()))
+                                                 AdminProjectController(),
+                                                 member_actions={'scrub': 'DELETE'}))
         resources.append(extensions.ResourceExtension('admin/services',
                                                  AdminServiceController()))
         resources.append(extensions.ResourceExtension('admin/quota_sets',
