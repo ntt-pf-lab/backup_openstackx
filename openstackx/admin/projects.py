@@ -11,6 +11,9 @@ class Project(base.Resource):
     def update(self, *args, **kwargs):
         self.manager.update(self.name, *args, **kwargs)
 
+    def scrub(self):
+        self.manager.scrub(self.name)
+
 
 class ProjectManager(base.ManagerWithFind):
     resource_class = Project
@@ -34,3 +37,6 @@ class ProjectManager(base.ManagerWithFind):
         if description:
             body["project"]["description"] = description
         self._update("/admin/projects/%s" % name, body)
+
+    def scrub(self, project_id):
+        self._delete("/admin/projects/%s/scrub" % (project_id))
