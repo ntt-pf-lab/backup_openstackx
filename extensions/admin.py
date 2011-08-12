@@ -245,6 +245,16 @@ def project_dict(project):
     else:
         return {}
 
+def network_dict(network):
+    if network:
+        fields = ('created_at', 'updated_at', 'deleted_at','deleted',
+                  'id','injected','cidr','netmask','bridge','gateway','broadcast','dns1',
+                  'vlan','vpn_public_address','vpn_public_port','vpn_private_address','dhcp_start',
+                  'project_id','host','cidr_v6','gateway_v6','label','netmask_v6','bridge_interface','multi_host')
+        return dict((field, getattr(network, field)) for field in  fields)
+    else:
+        return {}
+
 
 def host_dict(host, compute_service, instances, volume_service, volumes, now):
     """Convert a host model object to a result dict"""
@@ -842,16 +852,34 @@ class AdminProjectController(object):
         auth_manager.AuthManager().delete_project(id)
         return exc.HTTPAccepted()
 
-    def scrub(self, req, id):
+
+class AdminNetworkController(object):
+
+    def disassociate(self, req, id):
         context = req.environ['nova.context']
-        LOG.audit(_("Delete allocated resources for project: %s"), id, context=context)
-        networks = db.project_get_networks(context, id)
-        for network in networks:
-            db.network_disassociate(context, network['id'])
-        groups = db.security_group_get_by_project(context, id)
-        for group in groups:
-            db.security_group_destroy(context, group['id'])
+        LOG.audit(_("Disassociating network: %s %s"), id, context=context)
+        db.network_disassociate(context, id)
         return exc.HTTPAccepted()
+
+    def index(self, req):
+        tenant_id = urlparse.parse_qs(req.environ['QUERY_STRING']).get('tenant_id', [None])[0]
+        context = req.environ['nova.context']
+        LOG.audit(_("Getting networks for project %s"), tenant_id or '<all>')
+        if context.is_admin and not tenant_id:
+            networks = db.network_get_all(context)
+        elif tenant_id:
+            networks = db.project_get_networks(context, tenant_id, associate=False)
+        else:
+            raise exc.HTTPNotFound()
+        result = [network_dict(net_ref) for net_ref in networks]
+        return  {'networks': result}
+
+    def get(self, req, id):
+        context = req.environ['nova.context']
+        net = db.network_get(context, id)
+        return {'network': network_dict(net)}
+
+    # TODO: implement full CRUD, not done right in nova too
 
 
 class ExtrasSecurityGroupController(object):
@@ -1070,8 +1098,10 @@ class Admin(object):
     def get_resources(self):
         resources = []
         resources.append(extensions.ResourceExtension('admin/projects',
-                                                 AdminProjectController(),
-                                                 member_actions={'scrub': 'DELETE'}))
+                                                 AdminProjectController()))
+        resources.append(extensions.ResourceExtension('admin/networks',
+                                                 AdminNetworkController(), # TODO(chemikadze): full networking support
+                                                 member_actions={'disassociate': 'DELETE'}))
         resources.append(extensions.ResourceExtension('admin/services',
                                                  AdminServiceController()))
         resources.append(extensions.ResourceExtension('admin/quota_sets',
