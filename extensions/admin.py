@@ -303,7 +303,10 @@ class PrivilegedServerController(openstack_api.servers.ControllerV11):
         # the implementation of the Servers API, which is in flux
 
         try:
-            servers = self._items(req, is_detail=True)
+            # KLUDGE to make this extension working with different nova branches
+            # in a soon future there will be only:
+            # servers = self._get_servers(req, is_detail=True)
+            servers = getattr(self,'_get_servers',self._items)(req, is_detail=True)
         except exception.Invalid as err:
             return exc.HTTPBadRequest(explanation=str(err))
 
@@ -891,11 +894,8 @@ class ExtrasSecurityGroupController(object):
     def index(self, req):
         context = req.environ['nova.context']
         self.compute_api.ensure_default_security_group(context)
-        if context.is_admin:
-            groups = db.security_group_get_all(context)
-        else:
-            groups = db.security_group_get_by_project(context,
-                                                      context.project_id)
+        groups = db.security_group_get_by_project(context,
+                                                  context.project_id)
         groups = [self._format_security_group(context, g) for g in groups]
 
         return {'security_groups':
