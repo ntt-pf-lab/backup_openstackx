@@ -1,4 +1,5 @@
 from openstackx.api.connection import ApiConnection
+from openstackx.admin.networks import NetworkManager
 from openstackx.admin.projects import ProjectManager
 from openstackx.admin.services import ServiceManager
 from openstackx.admin.servers import ServerManager
@@ -33,6 +34,7 @@ class Admin(object):
         self.flavors = FlavorManager(self)
         self.quota_sets = QuotaSetManager(self)
         self.servers = ServerManager(self)
+        self.networks = NetworkManager(self)
 
     def authenticate(self):
         """
