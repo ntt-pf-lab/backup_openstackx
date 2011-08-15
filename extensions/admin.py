@@ -553,21 +553,28 @@ class UsageController(object):
                                    )).fetchall()
 
         rval = {}
+        flavors = {}
 
         for row in rows:
             o = {}
             for i in range(len(fields)):
                 o[fields[i]] = row[i]
             o['hours'] = self._hours_for(o, period_start, period_stop)
+            flavor_type = o['instance_type_id']
 
             try:
-                flavor = db.instance_type_get_by_id(context, o['instance_type_id'])
+                flavors[flavor_type] = \
+                    db.instance_type_get_by_id(context, flavor_type)
+
             except AttributeError:
                 # The most recent version of nova renamed this function
-                flavor = db.instance_type_get(context, o['instance_type_id'])
+                flavors[flavor_type] = \
+                    db.instance_type_get(context, flavor_type)
             except exception.InstanceTypeNotFound:
                 # can't bill if there is no instance type
                 continue
+
+            flavor = flavors[flavor_type]
 
             o['name'] = o['display_name']
             del(o['display_name'])
@@ -655,6 +662,7 @@ class UsageController(object):
         period_stop = self._parse_datetime(env.get('end', [datetime.utcnow().isoformat()])[0])
         return (period_start, period_stop)
 
+    # TODO(ja): add methods to just get summary
     def index(self, req):
         (period_start, period_stop) = self._get_datetime_range(req)
         context = req.environ['nova.context']
