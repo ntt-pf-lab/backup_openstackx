@@ -23,6 +23,7 @@ class Config(object):
         'auth_token': None,
         'auth_url': "https://auth.api.rackspacecloud.com/v1.0",
         'management_url': None,
+        'tenant_id': None,
         'user_agent': 'python-openstack-compute/%s' % __version__,
         'allow_cache': False,
         'cloud_api': 'RACKSPACE',

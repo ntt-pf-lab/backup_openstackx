@@ -432,8 +432,6 @@ class ExtrasSnapshotController(object):
 class ExtrasFlavorController(openstack_api.flavors.ControllerV11):
     def _get_view_builder(self, req):
         class ViewBuilder(views.flavors.ViewBuilderV11):
-            def __init__(self, base_url):
-                self.base_url = base_url
 
             def _build_simple(self, flavor_obj):
                 simple = {

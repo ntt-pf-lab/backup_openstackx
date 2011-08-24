@@ -1,15 +1,19 @@
 from openstackx.api import base
-from openstackx import compute # fixme import from jacobian
 
 
-class Flavor(compute.Flavor):
+class Flavor(base.Resource):
+    """
+    A flavor is an available hardware configuration for a server.
+    """
     def __repr__(self):
         return "<Flavor: %s>" % self.name
 
-
-class FlavorManager(compute.FlavorManager):
+class FlavorManager(base.ManagerWithFind):
+    """
+    Manage :class:`Flavor` resources.
+    """
     resource_class = Flavor
-
+    
     def list(self):
         """
         Get a list of all flavors.
@@ -17,3 +21,12 @@ class FlavorManager(compute.FlavorManager):
         :rtype: list of :class:`Flavor`.
         """
         return self._list("/extras/flavors", "flavors")
+        
+    def get(self, flavor):
+        """
+        Get a specific flavor.
+        
+        :param flavor: The ID of the :class:`Flavor` to get.
+        :rtype: :class:`Flavor`
+        """
+        return self._get("/extras/flavors/%s" % base.getid(flavor), "flavor")
