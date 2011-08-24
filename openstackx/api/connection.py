@@ -21,9 +21,6 @@ class ApiConnection(httplib2.Http):
         super(ApiConnection, self).__init__()
         self.config = config
         self.management_url = self.config.management_url
-        self.tenant_path = ''
-        if self.config.tenant_id:
-            self.tenant_path = '/' + self.config.tenant_id
         self.auth_token = self.config.auth_token
 
         # httplib2 overrides
@@ -61,7 +58,7 @@ class ApiConnection(httplib2.Http):
         # re-authenticate and try again. If it still fails, bail.
         try:
             kwargs.setdefault('headers', {})['X-Auth-Token'] = self.auth_token
-            resp, body = self.request(self.management_url + self.tenant_path + url,
+            resp, body = self.request(self.management_url + url,
                                       method,
                                       **kwargs)
             return resp, body
