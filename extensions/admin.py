@@ -533,7 +533,7 @@ class UsageController(object):
                   'hostname',
                   'display_name',
                   'host',
-                  'state_description',
+                  'vm_state',
                   'instance_type_id',
                   'launched_at',
                   'terminated_at']
@@ -595,9 +595,9 @@ class UsageController(object):
             if o['ended_at']:
                 o['state'] = 'terminated'
             else:
-                o['state'] = o['state_description']
+                o['state'] = o['vm_state']
 
-            del(o['state_description'])
+            del(o['vm_state'])
 
             now = datetime.utcnow()
 
