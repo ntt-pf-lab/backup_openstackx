@@ -145,8 +145,9 @@ class OverrideHelper(create_instance_helper.CreateInstanceHelper):
         image_href = self.controller._image_ref_from_req_data(body)
         try:
             image_service, image_id = nova.image.get_image_service(image_href)
-            kernel_id, ramdisk_id = self._get_kernel_ramdisk_from_image(
-                                                req, image_id)
+            kernel_id, ramdisk_id = self._get_kernel_ramdisk_from_image(req,
+                                                                        image_service,
+                                                                        image_id)
             images = set([str(x['id']) for x in image_service.index(context)])
             assert str(image_id) in images
         except Exception, e:
