@@ -39,17 +39,13 @@ class UserManager(base.ManagerWithFind):
 
         self._update("/users/%s/tenant" % user_id, params)
 
-    def create(self, user_id, email, password, tenant_id, enabled=True):
-        params = {"user": {"id": user_id,
+    def create(self, name, email, password, tenant_id, enabled=True):
+        params = {"user": {"name": name,
                            "email": email,
                            "tenantId": tenant_id,
                            "enabled": enabled,
                            "password": password}}
         return self._create('/users', params, "user")
-
-    def _create(self, url, body, response_key):
-        resp, body = self.api.connection.put(url, body=body)
-        return self.resource_class(self, body[response_key])
 
     def delete(self, user_id):
         self._delete("/users/%s" % user_id)

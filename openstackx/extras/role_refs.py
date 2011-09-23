@@ -13,14 +13,14 @@ class RoleRefManager(base.ManagerWithFind):
     resource_class = RoleRef
 
     def list_for_user(self, user_id):
-        return self._list("/users/%s/roles" % user_id, "roleRefs")
+        return self._list("/users/%s/roleRefs" % user_id, "roles")
 
     def add_for_tenant_user(self, tenant_id, user_id, role_id):
-        params = {"roleRef": {"tenantId": tenant_id, "roleId": role_id}}
-        return self._create("/users/%s/roles" % user_id, params, "roleRef")
+        params = {"role": {"tenantId": tenant_id, "roleId": role_id}}
+        return self._create("/users/%s/roleRefs" % user_id, params, "role")
 
     def delete_for_tenant_user(self, tenant_id, user_id, role_id):
         role_refs = self.list_for_user(user_id)
         for role_ref in role_refs:
             if role_ref.roleId == role_id and tenant_id == role_ref.tenantId:
-                return self._delete("/users/%s/roles/%s" % (user_id, role_ref.id))
+                return self._delete("/users/%s/roleRefs/%s" % (user_id, role_ref.id))

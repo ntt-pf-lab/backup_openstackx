@@ -29,8 +29,8 @@ class TenantManager(base.ManagerWithFind):
 #        params = {}
 #        return self._delete("/users/%s/roleRefs/5" % user_id)
 
-    def create(self, tenant_id, description, enabled=True):
-        params = {"tenant": {"id": tenant_id,
+    def create(self, name, description, enabled=True):
+        params = {"tenant": {"name":name,
                              "description": description,
                              "enabled": enabled}}
 
