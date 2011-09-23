@@ -58,4 +58,4 @@ class UserManager(base.ManagerWithFind):
         return self._list("/users", "users")
 
     def get_for_tenant(self, tenant_id):
-        return self._get("/tenants/%s/users" % tenant_id, "users")
+        return self._list("/tenants/%s/users" % tenant_id, "users")
