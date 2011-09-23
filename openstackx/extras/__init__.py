@@ -8,6 +8,7 @@ from openstackx.extras.tenants import TenantManager
 from openstackx.extras.users import UserManager
 from openstackx.extras.usage import UsageManager
 from openstackx.extras.role_refs import RoleRefManager
+from openstackx.extras.roles import RoleManager
 from openstackx.extras.endpoint_templates import EndpointTemplateManager
 from openstackx.extras.endpoints import EndpointManager
 from openstackx.extras.security_groups import SecurityGroupManager
@@ -94,6 +95,7 @@ class Account(object):
         self.tenants = TenantManager(self)
         self.users = UserManager(self)
         self.role_refs = RoleRefManager(self)
+        self.roles = RoleManager(self)
         self.endpoint_templates = EndpointTemplateManager(self)
         self.endpoints = EndpointManager(self)
 
